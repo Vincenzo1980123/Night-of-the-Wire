@@ -320,8 +320,8 @@ const EASTR=[
   '..#ZZZZZZ#.F',            // 13
   '..###D####.F',            // 14 door
   dots(11)+'F',              // 15
-  '.L'+dots(9)+'F',          // 16
-  dots(11)+'F',dots(11)+'F',dots(11)+'F', // 17-19
+  '.L'+dots(6)+'OO.'+'F',    // 16 fire pit
+  dots(8)+'OO.'+'F',dots(11)+'F',dots(11)+'F', // 17-19
   dots(9)+'L.'+'F',          // 20
   dots(11)+'F',dots(11)+'F',dots(11)+'F',dots(11)+'F',dots(11)+'F',dots(11)+'F', // 21-26
   'FFFFFRFFFFFT'             // 27 arrivals gate
@@ -339,6 +339,8 @@ const ROOMS=[
   {x0:3,y0:21,x1:7,y1:24,f:'w',name:'A'},{x0:13,y0:21,x1:17,y1:24,f:'w',name:'B'},{x0:23,y0:21,x1:27,y1:24,f:'w',name:'C'}
 ];
 const WALK=new Set(['.',',','E','d','P','c','_']);
+const PIT={x0:40,y0:16,x1:42,y1:18,cx:41,cy:17};
+const pitDist=(x,y)=>Math.hypot(Math.max(PIT.x0-x,0,x-PIT.x1),Math.max(PIT.y0-y,0,y-PIT.y1));
 const OPAQUE=new Set(['#','B','T','o','X','r','w','W','C','D']);
 const LAMPS=[];
 let grid, floorCol;
@@ -502,7 +504,7 @@ function mkGuard(route,seed,post){
   return g;
 }
 function resetGuards(){
-  for(const g of guards){g.state='patrol';g.target=null;g.susp=0;g.warnT=null;g.path=null;g.koT=0;g.retWp=null;g.x=g.route[0].x;g.y=g.route[0].y;g.wp=0;g.pause=0;}
+  for(const g of guards){if(g.gone)continue;g.state='patrol';g.target=null;g.susp=0;g.warnT=null;g.path=null;g.koT=0;g.retWp=null;g.x=g.route[0].x;g.y=g.route[0].y;g.wp=0;g.pause=0;}
   for(const d of dogs){d.state='heel';d.target=null;d.alertT=0;d.eatT=0;d.x=d.handler.x+0.7;d.y=d.handler.y+0.7;d.path=null;}
 }
 
@@ -523,6 +525,7 @@ function startDay(){
   P.x=G.start.x;P.y=G.start.y;P.busy=null;P.sleeping=false;P.dir=Math.PI*1.25;
   for(const c of comps){if(c.lost)continue;const p=COMP_DAY[c.id];c.state='day';c.x=p.x;c.y=p.y;c.path=null;c.crouch=false;}
   for(const n of G.npcs){if(n.dayPos){n.x=n.dayPos.x;n.y=n.dayPos.y;}n.sit=false;n.crouch=false;n.working=!n.route&&!n.dayRoute;n.path=null;}
+  {const gone=guards.filter(g=>g.gone);for(const g of gone){g.gone=false;g.fall=null;}if(gone.length)G.news.push(`A new guard stands at the pit where ${gone.map(g=>g.name).join(' and ')} stood. Nobody asks questions out loud.`);}
   resetGuards();
   computeFloor();
   if(G.day>LAST_DAY){startLine('selection');return;}
@@ -839,7 +842,7 @@ function updateDialog(dt){
 }
 
 /* ================= audio: a silent camp; only sounds that mean something ================= */
-const AMB={};let AC=null,master=null,noiseBuf=null,soundOn=true,sirenA=null,sirenB=null,sirenGain=null;
+const AMB={},DOGV={};let AC=null,master=null,noiseBuf=null,soundOn=true,sirenA=null,sirenB=null,sirenGain=null;
 function initAudio(){
   if(AC){if(AC.state!=='running')AC.resume();return;}
   try{
@@ -847,11 +850,16 @@ function initAudio(){
     const comp=AC.createDynamicsCompressor();comp.threshold.value=-24;comp.ratio.value=4;comp.connect(AC.destination);
     master=AC.createGain();master.gain.value=0.55;master.connect(comp);
     noiseBuf=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
-    // distant air-raid siren: two slightly detuned soft oscillators, heavily low-passed
-    const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=850;lp.Q.value=0.3;
+    // an old motor-driven air-raid siren: two rotor tones a minor third apart, a little rasp, an echo off the barracks
     sirenGain=AC.createGain();sirenGain.gain.value=0;
-    sirenA=AC.createOscillator();sirenA.type='triangle';sirenB=AC.createOscillator();sirenB.type='sine';
-    sirenA.connect(lp);sirenB.connect(lp);lp.connect(sirenGain).connect(master);sirenA.start();sirenB.start();
+    sirenA=AC.createOscillator();sirenA.type='sawtooth';sirenB=AC.createOscillator();sirenB.type='sawtooth';
+    const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=900;bp.Q.value=0.6;AMB.sirenBP=bp;
+    const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1700;
+    const gB=AC.createGain();gB.gain.value=0.7;sirenA.connect(bp);sirenB.connect(gB).connect(bp);
+    const flut=AC.createOscillator();flut.frequency.value=31;const flutG=AC.createGain();flutG.gain.value=0.12;const am=AC.createGain();am.gain.value=0.88;flut.connect(flutG).connect(am.gain);
+    const dl=AC.createDelay(1);dl.delayTime.value=0.27;const fb=AC.createGain();fb.gain.value=0.32;const wet=AC.createGain();wet.gain.value=0.45;
+    bp.connect(lp).connect(am).connect(sirenGain);sirenGain.connect(master);sirenGain.connect(dl);dl.connect(fb).connect(dl);dl.connect(wet).connect(master);
+    sirenA.start();sirenB.start();flut.start();
     // ambience: wind, the live fence's hum, the generator's thrum; levels are set every frame by distance and time of day
     const wind=AC.createBufferSource();wind.buffer=noiseBuf;wind.loop=true;
     AMB.windLP=AC.createBiquadFilter();AMB.windLP.type='lowpass';AMB.windLP.frequency.value=380;AMB.windLP.Q.value=0.4;
@@ -862,6 +870,8 @@ function initAudio(){
     const genLP=AC.createBiquadFilter();genLP.type='lowpass';genLP.frequency.value=230;const g2=AC.createGain();g2.gain.value=0.25;
     const wob=AC.createOscillator();wob.frequency.value=2.7;const wobG=AC.createGain();wobG.gain.value=0.3;const genMod=AC.createGain();genMod.gain.value=0.7;wob.connect(wobG).connect(genMod.gain);
     AMB.gen=AC.createGain();AMB.gen.gain.value=0;gen.connect(genLP);gen2.connect(g2).connect(genLP);genLP.connect(genMod).connect(AMB.gen).connect(master);gen.start();gen2.start();wob.start();
+    const fire=AC.createBufferSource();fire.buffer=noiseBuf;fire.loop=true;const fireLP=AC.createBiquadFilter();fireLP.type='lowpass';fireLP.frequency.value=320;
+    AMB.fire=AC.createGain();AMB.fire.gain.value=0;fire.connect(fireLP).connect(AMB.fire).connect(master);fire.start();
     const s=AC.createBufferSource();s.buffer=AC.createBuffer(1,1,22050);s.connect(AC.destination);s.start(0);
     AC.resume();
   }catch(e){AC=null;}
@@ -901,18 +911,29 @@ function sfx(name,vol=1){
     case 'cricket':for(const k of [0,0.06,0.12])tone(t+k,{f0:4300,f1:4250,peak:0.005*vol,attack:0.004,decay:0.03});break;
     case 'owl':tone(t,{f0:400,f1:370,peak:0.016*vol,attack:0.06,decay:0.35});tone(t+0.62,{f0:410,f1:355,peak:0.013*vol,attack:0.06,decay:0.55});break;
     case 'farbark':for(const k of [0,0.32])tone(t+k,{f0:290,f1:170,type:'triangle',peak:0.016*vol,attack:0.01,decay:0.12,lp:520});break;
+    case 'whoomp':noiseHit(t,{type:'lowpass',freq:260,q:0.6,peak:0.16,attack:0.03,decay:1.2});noiseHit(t+0.05,{freq:1400,q:0.5,peak:0.05,attack:0.02,decay:0.6});break;
+    case 'crackle':noiseHit(t,{type:'highpass',freq:2500+Math.random()*2500,q:0.6,peak:0.03*vol,attack:0.001,decay:0.012+Math.random()*0.02});break;
+    case 'dogbark':{ // one dog: 1-3 barks, its own pitch, a little growl sometimes
+      const p0=DOGV.p||330,n=DOGV.n||2;
+      if(DOGV.growl)tone(t,{f0:105,f1:95,type:'sawtooth',peak:0.025*vol,attack:0.08,decay:0.45,lp:420});
+      for(let k=0;k<n;k++){const tt=t+(DOGV.growl?0.45:0)+k*(0.2+Math.random()*0.12),pp=p0*(0.92+Math.random()*0.16);
+        tone(tt,{f0:pp,f1:pp*0.55,type:'sawtooth',peak:0.06*vol,attack:0.006,decay:0.13,lp:1300});
+        noiseHit(tt,{freq:pp*2.6,q:1.4,peak:0.05*vol,attack:0.004,decay:0.1});noiseHit(tt,{freq:480,q:0.8,peak:0.035*vol,attack:0.003,decay:0.08});}
+      break;}
     case 'train':noiseHit(t,{type:'lowpass',freq:130,q:0.5,peak:0.05*vol,attack:2.5,decay:5});break;
     case 'heart':for(const [k,v] of [[0,1],[0.19,0.7]]){tone(t+k,{f0:62,f1:40,peak:0.13*vol*v,attack:0.004,decay:0.12,lp:160});tone(t+k,{f0:140,f1:95,peak:0.045*vol*v,attack:0.004,decay:0.09,lp:320});}break;
   }}catch(e){}
 }
 function updateAudio(){
   if(!AC||!sirenGain)return;
-  const t=AC.currentTime;
+  const t=AC.currentTime,dt=Math.min(0.1,Math.max(0,G.time-(G.sirenLast??G.time)));G.sirenLast=G.time;
   master.gain.setTargetAtTime(soundOn&&running&&!paused?0.55:0,t,0.05);
   const on=(G.sirenT||0)>0&&(G.phase==='night'||G.phase==='day');
-  sirenGain.gain.setTargetAtTime(on?0.032:0,t,on?0.8:1.2);
-  const ph=(G.time%7)/7, f=260+240*(0.5-0.5*Math.cos(ph*Math.PI*2));
-  sirenA.frequency.setTargetAtTime(f,t,0.05);sirenB.frequency.setTargetAtTime(f*1.006,t,0.05);
+  // the rotor spins up over a few seconds and winds down slowly after it's switched off
+  G.sirenSpin=clamp((G.sirenSpin||0)+(on?dt*0.28:-dt*0.13),0,1);G.sirenPh=(G.sirenPh||0)+dt;
+  const sp=G.sirenSpin,wail=0.5-0.5*Math.cos(G.sirenPh/6.5*Math.PI*2),f=60+sp*sp*(300+130*wail*sp);
+  sirenGain.gain.setTargetAtTime(Math.min(1,sp*1.8)*0.05,t,0.15);
+  sirenA.frequency.setTargetAtTime(f,t,0.06);sirenB.frequency.setTargetAtTime(f*1.19,t,0.06);AMB.sirenBP.frequency.setTargetAtTime(f*2.2,t,0.1);
 }
 const FENCE_PTS=[];
 function updateAmbient(dt){
@@ -941,6 +962,14 @@ function updateAmbient(dt){
     else if(!night){G.ambT=8+Math.random()*12;if(r<0.55)sfx('clank',0.5+Math.random()*0.6);else if(r<0.85)sfx('crow',0.6+Math.random()*0.5);else sfx('cough',0.35);}
     else{G.ambT=14+Math.random()*18;if(r<0.35)sfx('owl',0.7);else if(r<0.7)sfx('farbark',0.6);else if(r<0.85)sfx('train',0.8);else sfx('creak',0.4);}
   }
+  G.dogT=(G.dogT==null?5:G.dogT)-dt;
+  if(G.dogT<=0){G.dogT=(night?5:9)+Math.random()*(night?9:14);
+    const ds=dogs.filter(d=>d.eatT<=0&&d.state!=='chase'),d=ds.length&&Math.random()<0.75?ds[Math.floor(Math.random()*ds.length)]:null;
+    if(d){const k=Math.hypot(d.x-P.x,d.y-P.y),i=dogs.indexOf(d);DOGV.p=[340,285,395][i%3];DOGV.n=1+Math.floor(Math.random()*3);DOGV.growl=Math.random()<0.25;
+      if(k<16){sfx('dogbark',(inside?0.4:0.9)*Math.max(0.15,1-k/17));d.bubble={text:'…',t:0.8,kind:'shout'};}}
+    else{DOGV.p=300+Math.random()*90;DOGV.n=1+Math.floor(Math.random()*2);DOGV.growl=false;sfx('dogbark',0.18);}}
+  {const pd=pitDist(P.x,P.y);if(pd<7&&!inside){G.crackT=(G.crackT||0)-dt;if(G.crackT<=0){G.crackT=0.05+Math.random()*0.3;sfx('crackle',(1-pd/7)*(0.5+Math.random()*0.8));}}
+    AMB.fire.gain.setTargetAtTime(pd<8&&!inside?0.05*Math.pow(1-pd/8,2)*(1+(G.pitFlare||0)):0,t,0.4);}
   if(night&&!inside){G.crickT=(G.crickT||2)-dt;if(G.crickT<=0){G.crickT=1.2+Math.random()*3;sfx('cricket',0.6+Math.random()*0.6);}}
 }
 function updateHeartbeat(dt){
@@ -1326,7 +1355,7 @@ function updateAlarmEvents(dt){
   G.alarmEvT-=dt;
   if(G.alarmEvT<=0){
     G.alarmEvT=80+Math.random()*70;
-    G.alarm=Math.max(G.alarm,10);G.sirenT=11;
+    G.alarm=Math.max(G.alarm,10);G.sirenT=14;
     for(const g of guards)if(g.state!=='ko')g.shoutT=0.3+Math.random()*1.5;
     if(!G.hints.alarm){G.hints.alarm=true;showDialog('hint',"The siren. Guards treat anyone outside as a runner until it stops. Get under a barrack roof.",6);}
   }
@@ -1446,7 +1475,9 @@ function findInteract(){
   for(const g of guards){
     if(g.state==='ko'||g.state==='chase')continue;
     const d=dist(g,P);if(d>1.4)continue;
-    if(Math.abs(angDiff(Math.atan2(P.y-g.y,P.x-g.x),g.dir))>1.85&&d<1.25&&G.phase==='night')
+    const behind=Math.abs(angDiff(Math.atan2(P.y-g.y,P.x-g.x),g.dir))>1.85;
+    if(behind&&d<1.3&&pitDist(g.x,g.y)<1.1&&!g.fall)consider(d-0.8,{at:g,label:'Push the guard into the fire pit',fn:()=>pushIntoPit(g)});
+    else if(behind&&d<1.25&&G.phase==='night')
       consider(d-0.5,{at:g,label:'Knock the guard out',fn:()=>{g.state='ko';g.koT=22;g.susp=0;g.bubble=null;g.path=null;g.warnT=null;sfx('thud',0.7);G.shake=0.2;
         if(dogs.some(x=>x.handler===g)&&!G.hints.loose){G.hints.loose=true;queueDialog('hint',"His dog is loose now, and it will go for anyone it smells.",4);}}});
     else consider(d+0.4,{at:g,label:`Speak to Guard ${g.name}`,fn:()=>guardTalk(g)});
@@ -1470,6 +1501,21 @@ function groupToggle(){
   if(f.length){f.forEach(c=>{c.state='wait';});say(f[0],"We'll wait here.");}
   else if(w.length){w.forEach(c=>{c.state='follow';});say(w[0],'Coming.');}
   updateHud(true);
+}
+function pushIntoPit(g){
+  g.fall={t:0,x0:g.x,y0:g.y};g.state='ko';g.koT=1e9;g.gone=true;g.susp=0;g.warnT=null;g.path=null;g.bubble=null;
+  sfx('thud',0.6);sfx('whoomp');G.shake=0.5;G.burden=Math.min(100,G.burden+12);
+  showDialog('Aren',"One push. A shout, and the fire roared up. I didn't look. I won't ever stop seeing it.",5,'whisper');
+  for(const o of guards)if(o!==g&&o.state!=='ko'&&dist(o,g)<8)hear(o,g.x,g.y);
+  if(dogs.some(x=>x.handler===g)&&!G.hints.loose){G.hints.loose=true;queueDialog('hint',"His dog is loose now, and it will go for anyone it smells.",4);}
+  updateHud(true);
+}
+function updateFalls(dt){
+  G.pitFlare=Math.max(0,(G.pitFlare||0)-dt*0.5);
+  for(const g of guards){if(!g.fall)continue;const f=g.fall;f.t+=dt;const k=Math.min(1,f.t/0.7);
+    g.x=f.x0+(PIT.cx-f.x0)*k*0.8;g.y=f.y0+(PIT.cy-f.y0)*k*0.8;g.moving=false;
+    if(f.t>=0.7&&!f.done){f.done=true;G.pitFlare=1.5;}
+    if(f.t>=1.1){g.fall=null;g.x=-60;g.y=-60;}}
 }
 function powerOff(){
   G.power=false;sfx('powerdown');G.shake=0.5;
@@ -2091,6 +2137,7 @@ function drawTileStatic(x,y,ch,bi){
 const SPR=new Map();let SPR_RS=0,sprScratch=null,sprSC=null,SPR_MAX=420;
 function tileTop(ch,bi){if(bi>=0){const b=BUILDINGS[bi];return b.h+(b.roof==='pitch'?b.rise:0.15)+0.3;}return ch==='T'?3.8:ch==='C'?4.8:ch==='r'?3.3:ch==='L'?2.6:2.0;}
 function drawTile(x,y,ch,bi){
+  if(ch==='O'){if(x===PIT.x0&&y===PIT.y0)drawPitFire();return;}
   const roofed=bi>=0&&!roofCut(bi),night=isNight()?1:0;
   let ex='';if(ch==='D')ex=(G.doorOpen||G.eastOpen?1:0)+''+(pInside?1:0);else if(ch==='R')ex=G.queue.active&&G.queue.npcs.some(n=>n.y>26.2)?1:0;
   const key=x+','+y+','+ch+','+(roofed?1:0)+night+ex;
@@ -2123,10 +2170,25 @@ function drawTile(x,y,ch,bi){
       ctx.strokeStyle='rgba(30,26,20,.55)';ctx.lineWidth=1;ctx.stroke();
       for(const f of [0.62,0.72]){const s1=top.map((q,i)=>[q[0]+(hem[i][0]-q[0])*f,q[1]+(hem[i][1]-q[1])*f]),s2=top.map((q,i)=>[q[0]+(hem[i][0]-q[0])*(f+0.05),q[1]+(hem[i][1]-q[1])*(f+0.05)]);path(s1,s2);ctx.fillStyle='rgba(44,38,30,.75)';ctx.fill();}
       ctx.strokeStyle='rgba(200,190,170,.35)';ctx.beginPath();top.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]+1):ctx.moveTo(q[0],q[1]+1));ctx.stroke();}break;
+    case 'O':if(x===PIT.x0&&y===PIT.y0)drawPitFire();break;
     case 'C':{const s=P3(x+0.5,y+0.5,4.7);for(let i=0;i<7;i++){const t=(G.time*0.12+i/7)%1;ctx.fillStyle=`rgba(70,68,66,${0.38*(1-t)})`;ctx.beginPath();ctx.arc(s[0]+t*70+Math.sin(t*8+i)*6,s[1]-t*120,6+t*26,0,TAU);ctx.fill();}break;}
     case 'U':if(!isNight()){const c=P3(x+0.5,y+0.5,0.55);ctx.fillStyle='rgba(220,220,220,.2)';for(let i=0;i<3;i++){const t=(G.time*0.3+i/3)%1;ctx.beginPath();ctx.arc(c[0]+Math.sin(t*6+i)*5,c[1]-6-t*30,4+t*6,0,TAU);ctx.fill();}}break;
     case 'g':case 'q':{const p=P3(x+0.5,y+0.85,0.6);ctx.fillStyle=ch==='g'?((G.time*3|0)%2?'#9cf37a':'#2f6b24'):'#511';ctx.fillRect(p[0]-2,p[1]-2,4,4);break;}
   }
+}
+function drawPitFire(){
+  const t=G.time,flare=G.pitFlare||0,c=iso(PIT.cx,PIT.cy,0);
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const g=ctx.createRadialGradient(c[0],c[1],0,c[0],c[1],70+flare*30);g.addColorStop(0,`rgba(255,140,40,${0.35+0.1*Math.sin(t*7)+flare*0.2})`);g.addColorStop(1,'rgba(255,90,20,0)');
+  ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(c[0],c[1],70+flare*30,36+flare*15,0,0,TAU);ctx.fill();ctx.restore();
+  // tongues of flame, flickering, taller when it flares
+  for(let i=0;i<14;i++){const a=hash(i,7)*TAU,r=hash(i,3)*0.62,bx=PIT.cx+Math.cos(a)*r,by=PIT.cy+Math.sin(a)*r,b=iso(bx,by,0);
+    const ph=t*(5+hash(i,1)*4)+i*1.7,h=(16+hash(i,5)*20+8*Math.sin(ph))*(1+flare*0.8),w=5+hash(i,8)*5,sway=Math.sin(ph*0.7)*4;
+    const gr=ctx.createLinearGradient(0,b[1],0,b[1]-h);gr.addColorStop(0,'rgba(255,220,120,.95)');gr.addColorStop(0.45,'rgba(255,140,40,.85)');gr.addColorStop(1,'rgba(180,40,10,0)');
+    ctx.fillStyle=gr;ctx.beginPath();ctx.moveTo(b[0]-w,b[1]);ctx.quadraticCurveTo(b[0]-w*0.6+sway,b[1]-h*0.5,b[0]+sway*1.5,b[1]-h);ctx.quadraticCurveTo(b[0]+w*0.6+sway,b[1]-h*0.5,b[0]+w,b[1]);ctx.closePath();ctx.fill();}
+  // sparks and smoke
+  for(let i=0;i<10+flare*20;i++){const k=(t*0.5+hash(i,11))%1,sx=c[0]+(hash(i,12)-0.5)*50+Math.sin(t*2+i)*6,sy=c[1]-10-k*(90+flare*60);ctx.fillStyle=`rgba(255,${180-k*100|0},60,${0.9*(1-k)})`;ctx.fillRect(sx,sy,2,2);}
+  for(let i=0;i<5;i++){const k=(t*0.08+i/5)%1;ctx.fillStyle=`rgba(60,56,54,${0.32*(1-k)})`;ctx.beginPath();ctx.arc(c[0]+k*50+Math.sin(k*7+i)*8,c[1]-50-k*140,10+k*30,0,TAU);ctx.fill();}
 }
 function drawBars(x,y,h,col){line(P3(x,y+0.5,h),P3(x+1,y+0.5,h),col,3);line(P3(x,y+0.5,0.1),P3(x+1,y+0.5,0.1),col,3);for(let i=0.08;i<1;i+=0.14)line(P3(x+i,y+0.5,0),P3(x+i,y+0.5,h),col,2);}
 function drawWires(x,y){
@@ -2147,7 +2209,7 @@ function coneRays(g,range){const pts=[[g.x,g.y]],n=14;for(let i=0;i<=n;i++){cons
 /* ---------- ground: textured tiles, world-scale variation, cast shadows, diorama base; cached ---------- */
 function floorTexAt(x,y){
   const c=grid[y][x],r=roomAt(x,y),v=Math.floor(hash(x*1.7,y*2.3)*3);
-  if(c==='d'||c==='o'||c==='p')return ['doorFloor',0];if(c==='Z')return ['wetFloor',v];if(r&&r.f==='w')return ['woodFloor',v];if(r&&r.f==='cell')return ['cellFloor',v];if(r)return ['concFloor',v];
+  if(c==='O')return ['ash',v];if(c==='d'||c==='o'||c==='p')return ['doorFloor',0];if(c==='Z')return ['wetFloor',v];if(r&&r.f==='w')return ['woodFloor',v];if(r&&r.f==='cell')return ['cellFloor',v];if(r)return ['concFloor',v];
   if(c===','||c==='r'||c==='E'||y<4)return ['grass',v];if(x>=32&&y>=5&&y<=26)return [x===37&&y>=15?'path':'ash',v];if(y>=5&&y<=7)return ['gravel',v];
   if(x<31&&y>=9&&((y===15||y===19)||((x===10||x===11||x===20||x===21)&&y>=15&&y<=19)))return ['path',v];
   return ['dirt',v];
@@ -2175,6 +2237,10 @@ function buildFloor(){
     const p=iso(x,y),rx=10+hash(i,3)*16,ry=5+hash(i,5)*6;fctx.fillStyle='rgba(90,108,124,.4)';fctx.beginPath();fctx.ellipse(p[0],p[1],rx,ry,0,0,TAU);fctx.fill();fctx.strokeStyle='rgba(60,46,32,.45)';fctx.lineWidth=1.5;fctx.stroke();
     fctx.fillStyle='rgba(220,226,232,.16)';fctx.beginPath();fctx.ellipse(p[0]-rx*0.3,p[1]-ry*0.25,rx*0.35,ry*0.25,0,0,TAU);fctx.fill();}
   fctx.strokeStyle='rgba(200,60,40,.35)';fctx.lineWidth=3;fctx.setLineDash([10,8]);fctx.beginPath();const a=iso(30.85,5),b=iso(30.85,27);fctx.moveTo(a[0],a[1]);fctx.lineTo(b[0],b[1]);fctx.stroke();fctx.setLineDash([]);
+  {// the pit: a dark hole ringed with blackened stones
+    const ring=(r,col)=>{fctx.beginPath();for(let i=0;i<=24;i++){const a=i/24*TAU,q=iso(PIT.cx+Math.cos(a)*r*(1+0.06*Math.sin(a*5)),PIT.cy+Math.sin(a)*r*(1+0.06*Math.cos(a*4)));i?fctx.lineTo(q[0],q[1]):fctx.moveTo(q[0],q[1]);}fctx.closePath();fctx.fillStyle=col;fctx.fill();};
+    ring(1.18,'#2a2522');ring(1.02,'#151110');ring(0.82,'#0b0807');
+    for(let i=0;i<22;i++){const a=i/22*TAU+hash(i,4)*0.2,r=1.08+hash(i,9)*0.08,q=iso(PIT.cx+Math.cos(a)*r,PIT.cy+Math.sin(a)*r);fctx.fillStyle=['#4a4440','#3a3532','#5a524c'][i%3];fctx.beginPath();fctx.ellipse(q[0],q[1],5+hash(i,2)*3,3+hash(i,3)*1.5,0,0,TAU);fctx.fill();fctx.fillStyle='rgba(0,0,0,.35)';fctx.fillRect(q[0]-4,q[1]+1,8,2);}}
   const dr=iso(37.5,11.9);fctx.fillStyle='#1c1d1f';fctx.beginPath();fctx.ellipse(dr[0],dr[1],9,4.5,0,0,TAU);fctx.fill();fctx.strokeStyle='#3a3c3f';fctx.lineWidth=1;for(let i=-6;i<=6;i+=3){fctx.beginPath();fctx.moveTo(dr[0]+i,dr[1]-3);fctx.lineTo(dr[0]+i,dr[1]+3);fctx.stroke();}
   floorDirty=false;
 }
@@ -2322,7 +2388,7 @@ function render(){
   for(const e of people){const p=iso(e.x,e.y);if(Math.abs(p[0]-G.camX)>halfW||Math.abs(p[1]-G.camY)>halfH)continue;
     if(e!==P&&underRoof(e))continue;
     if(inEast(e.x,e.y)&&!pInside&&e!==P)continue;
-    list.push({d:e.x+e.y,k:1,f:()=>e.isDog?drawDog(e):drawPerson(e)});}
+    list.push({d:e.x+e.y,k:1,f:()=>e.isDog?drawDog(e):drawPerson(e,e.fall?Math.max(0,1-e.fall.t/0.75):undefined)});}
   SPR_MAX=Math.max(420,Math.ceil(list.length*1.6));
   list.sort((a,b)=>a.d-b.d||a.k-b.k);
   for(const it of list)it.f();
@@ -2338,6 +2404,7 @@ function render(){
   if(lampsOn()){for(const L of LAMPS)light(L.x,L.y,3.8,0.9);for(const s of spots())light(s.x,s.y,1.9,1);}
   if(night&&cutB>=0&&cutB<=2){const b=BUILDINGS[cutB];light((b.x0+b.x1+1)/2,(b.y0+b.y1+1)/2,3.6,0.66);}
   if(pInside)light(37.5,11.6,3.2,0.85);
+  if(!pInside)light(PIT.cx,PIT.cy,2.8,0.9);
   if(night||pInside){light(P.x,P.y,2.4,0.55);for(const c of comps)if(c.state!=='lost'&&c.state!=='gone')light(c.x,c.y,c.state==='idle'?0.8:1,c.state==='idle'?0.18:0.3);}
   const cones=new Map();
   for(const g of guards){if(g.state==='ko')continue;const p=iso(g.x,g.y);if(Math.abs(p[0]-G.camX)>halfW+200||Math.abs(p[1]-G.camY)>halfH+200)continue;
@@ -2437,7 +2504,7 @@ function drawMini(){
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const c=grid[y][x];let col=null;
     if(c==='#'||c==='o'||c==='C'||c==='D'||c==='Z')col=x>=32?'#57524c':'#6c6963';else if(c==='B')col='#6b4c30';else if(c==='F'||c==='T'||c==='R')col=G.power?'#4f7aa0':'#555';else if(c==='f')col='#555';
-    else if(c==='G')col='#8a8f98';else if(c==='r')col='#203524';else if(c==='X')col='#7a5835';else if(y<4)col='#18241a';
+    else if(c==='G')col='#8a8f98';else if(c==='O')col=(G.time*4|0)%2?'#c8641e':'#8a3a14';else if(c==='r')col='#203524';else if(c==='X')col='#7a5835';else if(y<4)col='#18241a';
     else if(x>=32)col='#1a1416';
     if(col){mctx.fillStyle=col;mctx.fillRect(x*s,y*s,s,s);}
   }
@@ -2476,7 +2543,7 @@ function step(dt){
   for(const n of G.detail){if(n.bubble){n.bubble.t-=dt;if(n.bubble.t<=0)n.bubble=null;}n.talkT-=dt;if(n.talkT<=0){n.talkT=12+Math.random()*10;if(pInside&&!n.bubble)say(n,pick(n.lines),'whisper');}}
   updateConvos(dt);
   updateQueue(dt);
-  for(const g of guards)updateGuard(g,dt);
+  for(const g of guards)updateGuard(g,dt);updateFalls(dt);
   for(const d of dogs)updateDog(d,dt);
   updateSpots(dt);
   updateAlarmEvents(dt);
