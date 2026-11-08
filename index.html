@@ -925,7 +925,7 @@ function updateAudio(){
   G.sirenSpin=clamp((G.sirenSpin||0)+(on?dt*0.28:-dt*0.13),0,1);G.sirenPh=(G.sirenPh||0)+dt;
   const sp=G.sirenSpin,wail=0.5-0.5*Math.cos(G.sirenPh/6.5*Math.PI*2),f=60+sp*sp*(300+130*wail*sp);
   sirenGain.gain.setTargetAtTime(Math.min(1,sp*1.8)*0.05,t,0.15);
-  if(REC.siren){if(!AMB.sirenRec){AMB.sirenSyn.gain.value=0;const s_=AC.createBufferSource();s_.buffer=REC.siren;s_.loop=true;s_.connect(sirenGain);s_.start();AMB.sirenRec=s_;}
+  if(REC.siren){if(!AMB.sirenRec){AMB.sirenSyn.gain.value=0;const s_=AC.createBufferSource();s_.buffer=REC.siren;s_.loop=true;const rg=AC.createGain();rg.gain.value=4;s_.connect(rg).connect(sirenGain);s_.start();AMB.sirenRec=s_;}
     AMB.sirenRec.playbackRate.setTargetAtTime(0.3+0.7*sp,t,0.2);}
   sirenA.frequency.setTargetAtTime(f,t,0.06);sirenB.frequency.setTargetAtTime(f*1.19,t,0.06);AMB.sirenBP.frequency.setTargetAtTime(f*2.2,t,0.1);
 }
@@ -1159,7 +1159,8 @@ function* paGen(sr){
 }
 /* ---- real recordings (public domain), fetched in the background; synthesised versions are the fallback ---- */
 // only files that exist are listed; more slots (march2, song, night, siren, fire, dog1-3) are wired below and fall back to synthesis
-const REC_FILES={march1:'audio/alte-kameraden.mp3',march2:'audio/defilier-marsch.mp3'};
+const REC_FILES={march1:'audio/alte-kameraden.mp3',march2:'audio/defilier-marsch.mp3',night:'audio/night-record.mp3',siren:'audio/siren.mp3',
+  dog1:'audio/dog-1.mp3',dog2:'audio/dog-2.mp3',dog3:'audio/dog-3.mp3'};
 const REC={},REC_WAIT={n:0,t0:0};
 function loadRecordings(){
   if(!AC||loadRecordings.done||location.protocol==='file:')return;loadRecordings.done=true;
