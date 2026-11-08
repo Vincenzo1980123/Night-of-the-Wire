@@ -874,7 +874,7 @@ function initAudio(){
     AMB.fire=AC.createGain();AMB.fire.gain.value=0;fire.connect(fireLP).connect(AMB.fire).connect(master);fire.start();
     const s=AC.createBufferSource();s.buffer=AC.createBuffer(1,1,22050);s.connect(AC.destination);s.start(0);
     AC.resume();
-    barkBuffers();startGramophone();
+    barkBuffers();startGramophone();preparePA();
   }catch(e){AC=null;}
 }
 function noiseHit(t,o){
@@ -1049,11 +1049,137 @@ function startGramophone(){
     SONGG=AC.createGain();SONGG.gain.value=0;SONGSRC.connect(SONGLP).connect(SONGG).connect(master);SONGSRC.start();};
   setTimeout(step_,200);
 }
+/* ---- camp loudspeakers: by day a worn record of marches and a soldier's ballad, played through horn speakers on the lamp posts.
+   Everything is original music composed for the game, synthesised sample by sample. ---- */
+const mfq=m=>440*Math.pow(2,(m-69)/12);
+let SYNR=777;const srnd=()=>((SYNR=(SYNR*16807)%2147483647)/2147483647);
+function synBrass(mix,sr,m,at,dur,amp,bright=1){const f=mfq(m),s0=Math.floor(at*sr),n=Math.floor((dur+0.1)*sr);let ph=srnd(),l1=0,l2=0;
+  for(let i=0;i<n&&s0+i<mix.length;i++){const t=i/sr,env=t<0.025?t/0.025:t<dur?0.82+0.18*Math.exp(-(t-0.025)*9):0.82*Math.exp(-(t-dur)*45);
+    ph+=f*(1-0.025*Math.exp(-t*55))/sr;ph-=Math.floor(ph);const a=1-Math.exp(-2*Math.PI*(420+2600*env*bright)*(1+f/1800)/sr);l1+=(2*ph-1-l1)*a;l2+=(l1-l2)*a;mix[s0+i]+=l2*env*amp;}}
+function synReed(mix,sr,m,at,dur,amp){const f=mfq(m),s0=Math.floor(at*sr),n=Math.floor((dur+0.08)*sr);let p1=0,p2=0.3,l=0;
+  for(let i=0;i<n&&s0+i<mix.length;i++){const t=i/sr,env=Math.min(1,t/0.04)*(t<dur?1:Math.exp(-(t-dur)*30))*(1+0.07*Math.sin(t*2*Math.PI*5.5));
+    p1+=f/sr;p2+=f*1.0045/sr;p1-=Math.floor(p1);p2-=Math.floor(p2);l+=(((p1<0.42)?1:-1)+((p2<0.42)?1:-1)-l)*0.14;mix[s0+i]+=l*env*amp;}}
+function synDrum(mix,sr,kind,at,amp){const s0=Math.floor(at*sr),L={snare:0.2,bass:0.5,cym:0.9,brush:0.14}[kind],n=Math.floor(L*sr);let pr=0,pr2=0,ph=0;
+  for(let i=0;i<n&&s0+i<mix.length;i++){const t=i/sr,w=srnd()*2-1;let v=0;
+    if(kind==='snare'){const h=w-pr;pr=w;v=h*Math.exp(-t*26)*0.6+Math.sin(2*Math.PI*190*t)*Math.exp(-t*45)*0.5;}
+    else if(kind==='bass'){ph+=(52+45*Math.exp(-t*28))/sr;v=Math.sin(2*Math.PI*ph)*Math.exp(-t*8)+w*Math.exp(-t*90)*0.3;}
+    else if(kind==='cym'){const h=w-pr;pr=w;const h2=h-pr2;pr2=h;v=h2*Math.exp(-t*4.2)*0.25;}
+    else{pr+=(w-pr)*0.3;v=pr*Math.exp(-t*20)*0.5;}
+    mix[s0+i]+=v*amp;}}
+function synBell(mix,sr,m,at,amp){const f=mfq(m),s0=Math.floor(at*sr),n=Math.floor(2.2*sr);
+  for(let i=0;i<n&&s0+i<mix.length;i++){const t=i/sr;mix[s0+i]+=(Math.sin(2*Math.PI*f*t)*Math.exp(-t*2.2)+0.45*Math.sin(2*Math.PI*f*2.76*t)*Math.exp(-t*4)+0.2*Math.sin(2*Math.PI*f*5.4*t)*Math.exp(-t*7))*amp;}}
+function synPluck(mix,sr,m,at,amp,damp,bright){const f=mfq(m),N=Math.max(2,Math.round(sr/f)),buf=new Float32Array(N);let lp=0;
+  for(let i=0;i<N;i++){lp=lp*(1-bright)+(srnd()*2-1)*bright;buf[i]=lp;}
+  const s0=Math.floor(at*sr),n=Math.min(mix.length-s0,Math.floor(sr*2));let idx=0;
+  for(let i=0;i<n;i++){const a=buf[idx],b=buf[(idx+1)%N];buf[idx]=(a+b)*0.5*damp;idx=(idx+1)%N;mix[s0+i]+=a*amp*(i<30?i/30:1);}}
+function* synVoice(mix,sr,notes,amp){ // a low female voice singing "oh": rough-free source through three mouth resonances
+  let ph=0,f=mfq(notes[0].m),brn=0,ni=0;const r1=[0,0],r2=[0,0],r3=[0,0];
+  const res=(st,x,fc,bw)=>{const r=Math.exp(-Math.PI*bw/sr),c=2*r*Math.cos(2*Math.PI*fc/sr),y=(1-r)*x+c*st[0]-r*r*st[1];st[1]=st[0];st[0]=y;return y;};
+  const a0=Math.floor(Math.max(0,notes[0].t-0.1)*sr),a1=Math.min(mix.length,Math.floor((notes[notes.length-1].t+notes[notes.length-1].d+0.3)*sr));
+  for(let i=a0;i<a1;i++){const tt=i/sr;while(ni<notes.length-1&&tt>=notes[ni+1].t-0.03)ni++;const n=notes[ni],dt=tt-n.t;
+    const env=dt>-0.03&&dt<n.d+0.05?Math.min(1,(dt+0.03)/0.09)*Math.min(1,(n.d+0.05-dt)/0.16):0;
+    f+=(mfq(n.m)*(1+Math.min(0.016,Math.max(0,dt-0.28)*0.03)*Math.sin(tt*2*Math.PI*5.2))-f)*(4.5/sr*22050/1000*0.78);
+    ph+=f/sr;ph-=Math.floor(ph);brn+=((srnd()*2-1)-brn)*0.3;const x=(2*ph-1)*0.8+brn*0.12;
+    mix[i]+=(res(r1,x,560,90)+res(r2,x,980,110)*0.55+res(r3,x,2750,180)*0.22)*env*amp;if(i%sr===0)yield 0.5;}}
+const normTo=(d,p)=>{let pk=0;for(const v of d)pk=Math.max(pk,Math.abs(v));if(pk>0)for(let i=0;i<d.length;i++)d[i]=d[i]/pk*p;return d;};
+// ---- an original Prussian-style street march in B-flat, 2/4: fanfare, two strains, a softer trio in E-flat
+const MCH={Bb:[46,41,[62,65,70]],F7:[41,48,[63,65,69]],Eb:[39,46,[63,67,70]],G7:[43,50,[62,65,71]],Cm:[48,43,[63,67,72]],Gm:[43,50,[62,67,70]],C7:[48,43,[64,67,70]],F:[41,48,[65,69,72]],Bb7:[46,41,[62,68,70]],Ab:[44,39,[63,68,72]],Fm:[41,48,[65,68,72]]};
+const MARCH=[ // [chord, [[midi,eighths]...]]
+ ['F7',[[65,1.5],[65,.5],[65,1],[69,1]]],['F7',[[72,1.5],[69,.5],[72,1],[77,1]]],['F7',[[77,2],[76,1],[77,1]]],['F7',[[72,2],[0,2]]],
+ ['Bb',[[74,1.5],[70,.5],[65,1],[70,1]]],['Bb',[[74,2],[77,2]]],['F7',[[75,1.5],[74,.5],[72,1],[69,1]]],['F7',[[65,2],[72,2]]],
+ ['F7',[[75,1.5],[72,.5],[69,1],[65,1]]],['F7',[[75,2],[74,1],[72,1]]],['Bb',[[74,1.5],[70,.5],[65,1],[70,1]]],['Bb',[[74,3],[0,1]]],
+ ['Bb',[[74,1.5],[70,.5],[65,1],[70,1]]],['Eb',[[79,2],[75,2]]],['Bb',[[77,1.5],[74,.5],[70,1],[74,1]]],['G7',[[79,2],[77,1],[75,1]]],
+ ['Cm',[[75,1.5],[72,.5],[67,1],[72,1]]],['F7',[[75,2],[74,1],[72,1]]],['F7',[[72,1],[74,1],[75,1],[69,1]]],['Bb',[[70,2],[0,2]]],
+ ['F7',[[72,1],[72,1],[72,1.5],[69,.5]]],['F7',[[77,2],[75,2]]],['Bb',[[74,1],[74,1],[74,1.5],[70,.5]]],['Bb',[[77,2],[74,2]]],
+ ['Gm',[[74,1],[79,1],[79,1.5],[77,.5]]],['C7',[[76,1],[72,1],[74,1],[76,1]]],['F',[[77,2],[72,2]]],['F7',[[69,2],[0,2]]],
+ ['F7',[[72,1],[72,1],[72,1.5],[69,.5]]],['F7',[[77,2],[75,2]]],['Bb',[[74,1],[74,1],[74,1.5],[70,.5]]],['Bb',[[77,2],[74,2]]],
+ ['Eb',[[75,1],[79,1],[82,1.5],[79,.5]]],['Bb',[[77,1.5],[74,.5],[70,1],[74,1]]],['F7',[[72,1.5],[75,.5],[74,1],[72,1]]],['Bb',[[70,2],[0,2]]],
+ ['Eb',[[79,3],[75,1]]],['Eb',[[70,4]]],['Bb7',[[77,3],[74,1]]],['Bb7',[[68,4]]],['Bb7',[[80,3],[77,1]]],['Bb7',[[74,2],[77,2]]],['Eb',[[75,4]]],['Eb',[[67,2],[70,2]]],
+ ['Ab',[[72,3],[75,1]]],['Ab',[[80,4]]],['Eb',[[79,3],[75,1]]],['C7',[[79,2],[76,2]]],['Fm',[[77,3],[80,1]]],['Bb7',[[74,2],[77,2]]],['Bb7',[[80,2],[77,1],[74,1]]],['Eb',[[75,3],[0,1]]],
+ ['Eb',[[75,1],[0,1],[75,1],[0,1]]],['Eb',[[75,2],[0,2]]]];
+function* marchGen(sr){
+  const e8=60/116/2,bars=MARCH.length,len=Math.floor(sr*(bars*4*e8+1.5)),mix=new Float32Array(len);
+  for(let b=0;b<bars;b++){const [ch,mel]=MARCH[b],t0=b*4*e8,[root,fifth,tones]=MCH[ch],trio=b>=36&&b<52,intro=b<4,end=b>=52;
+    // tuba on the beats, horns on the off-beats
+    synBrass(mix,sr,root-12+12,t0,e8*1.6,0.32,0.5);synBrass(mix,sr,fifth-12+12,t0+2*e8,e8*1.6,0.28,0.5);
+    if(!intro)for(const k of [1,3])for(const m of tones)synBrass(mix,sr,m,t0+k*e8,e8*0.75,0.07,0.6);
+    // melody on cornets, a second cornet in harmony; glockenspiel in the trio
+    let c=0;for(const [m,d] of mel){if(m){synBrass(mix,sr,m,t0+c*e8,d*e8*0.86,trio?0.2:0.26,1);
+      const below=tones.map(x=>x+12).concat(tones).filter(x=>x<m-2&&x>=m-6);const h=below.length?Math.max(...below):m-4;
+      if(!intro)synBrass(mix,sr,h,t0+c*e8,d*e8*0.86,0.13,0.9);if(trio)synBell(mix,sr,m+12,t0+c*e8,0.05);}c+=d;}
+    // drums: bass drum and clash cymbals on the beats, a march pattern on the snare
+    synDrum(mix,sr,'bass',t0,0.55);synDrum(mix,sr,'bass',t0+2*e8,trio?0.3:0.42);
+    if(!trio&&!intro)synDrum(mix,sr,'cym',t0,0.5);
+    const snare=intro?[0,0.5,1,1.5,2,2.5,3,3.5]:trio?[1,3]:[0,1,1.5,2,3,3.5];for(const k of snare)synDrum(mix,sr,'snare',t0+k*e8,(intro?0.18+0.05*k:trio?0.14:0.22)*(k%1?0.7:1));
+    if(end&&b===53)synDrum(mix,sr,'cym',t0,0.7);
+    yield b/bars;}
+  return normTo(mix,0.9);
+}
+// ---- an original slow soldier's ballad in F, 4/4: a distant bugle call, then a low female voice over accordion, bass and brushes
+const BCH={F:[41,[57,60,65]],C7:[36,[58,60,64]],F7:[41,[57,63,65]],Bb:[46,[58,62,65]]};
+const BALLAD=[
+ ['F',[[0,4]]],['F',[[0,4]]],
+ ['F',[[60,1],[65,1.5],[65,.5],[69,1]]],['F',[[72,3],[69,1]]],['C7',[[67,1],[70,1.5],[70,.5],[67,1]]],['C7',[[64,3],[60,1]]],
+ ['C7',[[64,1],[67,1.5],[67,.5],[70,1]]],['C7',[[74,2],[72,1],[70,1]]],['F',[[69,4]]],['F',[[0,2],[72,1],[69,1]]],
+ ['F',[[72,1],[65,1.5],[65,.5],[69,1]]],['F7',[[72,2],[75,1],[72,1]]],['Bb',[[74,3],[70,1]]],['Bb',[[65,3],[74,1]]],
+ ['F',[[72,1.5],[69,.5],[65,1],[69,1]]],['C7',[[67,2],[70,1],[64,1]]],['F',[[65,4]]],['F',[[0,4]]],
+ ['Bb',[[74,2],[74,1],[72,1]]],['F',[[69,2],[72,2]]],['C7',[[70,1.5],[69,.5],[67,1],[64,1]]],['F',[[65,3],[0,1]]],
+ ['Bb',[[74,1.5],[72,.5],[70,1],[74,1]]],['F',[[72,2],[69,2]]],['C7',[[67,1.5],[70,.5],[69,1],[67,1]]],['F',[[65,4]]],['F',[[0,4]]]];
+function* balladGen(sr){
+  const q=60/76,bars=BALLAD.length,len=Math.floor(sr*(bars*4*q+2)),mix=new Float32Array(len),notes=[];
+  // the bugle call, far off, before the singing starts
+  [[72,.5],[72,.25],[72,.25],[77,1],[72,.5],[69,.5],[65,1],[72,1.5],[0,.5],[65,.5],[69,.5],[72,2]].reduce((t,[m,d])=>{if(m)synBrass(mix,sr,m,t,d*q*0.9,0.16,0.7);return t+d*q;},0.2);
+  for(let b=0;b<bars;b++){const [ch,mel]=BALLAD[b],t0=b*4*q,[root,tones]=BCH[ch];
+    if(b>=2){synPluck(mix,sr,root,t0,0.5,0.9985,0.3);synPluck(mix,sr,root+7,t0+2*q,0.4,0.9985,0.3);
+      for(const k of [1,3])tones.forEach(m=>synReed(mix,sr,m,t0+k*q,q*0.7,0.035));
+      for(const k of [1,3])synDrum(mix,sr,'brush',t0+k*q,0.35);}
+    let c=0;for(const [m,d] of mel){if(m)notes.push({m,t:t0+c*q,d:d*q});c+=d;}yield b/bars*0.5;}
+  yield* synVoice(mix,sr,notes,0.42);return normTo(mix,0.6);
+}
+// ---- the programme: chime, march, ballad; pressed on a worn record and pushed through horn speakers
+function* paGen(sr){
+  const g1=marchGen(sr);let r;do{r=g1.next();if(!r.done)yield 0.1;}while(!r.done);const m=r.value;
+  const g2=balladGen(sr);do{r=g2.next();if(!r.done)yield 0.4;}while(!r.done);const bl=r.value;
+  const chime=new Float32Array(Math.floor(sr*3));[[77,0],[81,0.55],[72,1.1]].forEach(([n,t])=>synBell(chime,sr,n,t,0.3));normTo(chime,0.7);
+  const parts=[chime,new Float32Array(Math.floor(sr*0.8)),m,new Float32Array(Math.floor(sr*4)),bl,new Float32Array(Math.floor(sr*7))];
+  const len=parts.reduce((a,p)=>a+p.length,0),raw=new Float32Array(len);let o=0;for(const p of parts){raw.set(p,o);o+=p.length;}
+  yield 0.7;
+  const out=new Float32Array(len);let pos=0,hp=0,hpx=0,hp2=0,hpx2=0,l1=0,l2=0,rz1=0,rz2=0;
+  const rr=Math.exp(-Math.PI*300/sr),rc=2*rr*Math.cos(2*Math.PI*1150/sr);
+  for(let i=0;i<len;i++){const t=i/sr;let v=0;if(pos<len-1){const j=Math.floor(pos),fr=pos-j;v=raw[j]*(1-fr)+raw[j+1]*fr;}
+    pos+=1+0.005*Math.sin(2*Math.PI*0.55*t)+0.0015*Math.sin(2*Math.PI*4.1*t);
+    v+=(srnd()*2-1)*0.01;if(srnd()<34/sr)v+=(srnd()<0.5?-1:1)*Math.pow(srnd(),3)*0.5;
+    // horn loudspeaker: no bass, no treble, a nasal resonance, overdriven
+    hp=0.94*(hp+v-hpx);hpx=v;hp2=0.94*(hp2+hp-hpx2);hpx2=hp;l1+=(hp2-l1)*0.62;l2+=(l1-l2)*0.62;
+    const rz=(1-rr)*l2+rc*rz1-rr*rr*rz2;rz2=rz1;rz1=rz;
+    out[i]=Math.tanh((l2*1.2+rz*2.2)*2.2)*0.6;if(i%(sr*2)===0)yield 0.7+0.3*i/len;}
+  return out;
+}
+let PABUF=null,PASRC=null,PAG=null,PALP=null;
+function preparePA(){
+  if(!AC||PABUF)return;PABUF='busy';const sr=16000,gen=paGen(sr);
+  const step_=()=>{let r;const t0=performance.now();do{r=gen.next();}while(!r.done&&performance.now()-t0<6);
+    if(!r.done){setTimeout(step_,30);return;}const d=r.value,b=AC.createBuffer(1,d.length,sr);b.copyToChannel(d,0);PABUF=b;
+    PALP=AC.createBiquadFilter();PALP.type='lowpass';PALP.frequency.value=4000;PAG=AC.createGain();PAG.gain.value=0;
+    // several speakers across the camp: the same record arrives twice more, a little later
+    const d1=AC.createDelay(1),d2=AC.createDelay(1),w1=AC.createGain(),w2=AC.createGain();d1.delayTime.value=0.19;d2.delayTime.value=0.43;w1.gain.value=0.38;w2.gain.value=0.22;
+    PALP.connect(PAG);PAG.connect(master);PAG.connect(d1);d1.connect(w1).connect(master);PAG.connect(d2);d2.connect(w2).connect(master);};
+  setTimeout(step_,1500);
+}
+function updatePA(){
+  if(!AC||!PAG)return;const t=AC.currentTime,day=G.phase==='day'&&running&&!paused;
+  if(day&&!PASRC){PASRC=AC.createBufferSource();PASRC.buffer=PABUF;PASRC.loop=true;PASRC.connect(PALP);PASRC.start();}
+  if(!day&&PASRC&&G.phase!=='day'){const s_=PASRC;PASRC=null;PAG.gain.setTargetAtTime(0,t,0.4);try{s_.stop(t+1.5);}catch(e){}return;}
+  let d=99;for(const L of LAMPS){const k=Math.hypot(L.x-P.x,L.y-P.y);if(k<d)d=k;}
+  const inside=zoneAt(P.x,P.y)==='safe'||!!roomAt(P.x,P.y);
+  const g=(0.035+0.05*Math.max(0,1-d/7))*(inside?0.45:1);
+  PAG.gain.setTargetAtTime(day?g:0,t,0.5);PALP.frequency.setTargetAtTime(inside?750:4200,t,0.4);
+}
 const GRAMO={x:24.75,y:11.45};
 function updateGramophone(){
   if(!SONGG||!AC)return;const t=AC.currentTime,inOffice=(roomAt(P.x,P.y)||{}).name==='office',d=Math.hypot(P.x-GRAMO.x,P.y-GRAMO.y);
   const g=inOffice?0.2:d<13?0.085*Math.pow(1-d/13,1.6):0;
-  SONGG.gain.setTargetAtTime(running&&!paused&&G.phase!=='pick'?g:0,t,0.6);SONGLP.frequency.setTargetAtTime(inOffice?7000:900+700*Math.max(0,1-d/8),t,0.5);
+  SONGG.gain.setTargetAtTime(running&&!paused&&G.phase==='night'?g:0,t,0.6);SONGLP.frequency.setTargetAtTime(inOffice?7000:900+700*Math.max(0,1-d/8),t,0.5);
 }
 const FENCE_PTS=[];
 function updateAmbient(dt){
@@ -2243,7 +2369,12 @@ function drawTileStatic(x,y,ch,bi){
       blockS(x+0.2,y+0.3,x+0.45,y+0.55,0.65,0.67,[226,220,200]);if(ch==='k')blockS(x+0.5,y+0.4,x+0.65,y+0.5,0.65,0.68,[236,232,220]);blockS(x+0.7,y+0.3,x+0.78,y+0.38,0.65,0.9,[60,58,52]);break;
     case 'g':case 'q':blockS(x+0.1,y+0.15,x+0.9,y+0.85,0,1.0,ch==='g'?[96,104,66]:[60,62,48]);for(let i=0;i<4;i++)line(P3(x+0.15+i*0.2,y+0.85,0.15),P3(x+0.25+i*0.2,y+0.85,0.15),'#d8a830',3);break;
     case 'j':block(x+0.05,y+0.35,x+0.95,y+0.62,0.2,0.5,{tex:'planks',v,top:'woodDark'});block(x+0.3,y+0.1,x+0.56,y+0.9,0,0.3,{tex:'planks',v:1,top:'woodDark'});break;
-    case 'L':block(x+0.46,y+0.46,x+0.54,y+0.54,0,2.24,{tex:'steel',v:0,edges:false});drawMeshAt(LAMPSHADE,x+0.5,y+0.5,2.22,0,1);break;
+    case 'L':block(x+0.46,y+0.46,x+0.54,y+0.54,0,2.24,{tex:'steel',v:0,edges:false});drawMeshAt(LAMPSHADE,x+0.5,y+0.5,2.22,0,1);
+      for(const [dx,dy] of [[0.36,0.1],[0.1,0.36]]){const a=P3(x+0.54,y+0.54,1.86),b=P3(x+0.5+dx,y+0.5+dy,1.8);
+        ctx.strokeStyle='#4a5056';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
+        ctx.fillStyle='#6a7076';ctx.beginPath();ctx.moveTo(a[0],a[1]-2);ctx.lineTo(b[0]+(dx>dy?4:-4),b[1]-6);ctx.lineTo(b[0]+(dx>dy?4:-4),b[1]+4);ctx.closePath();ctx.fill();
+        ctx.fillStyle='#2a2e32';ctx.beginPath();ctx.ellipse(b[0]+(dx>dy?4:-4),b[1]-1,2.2,5,0,0,TAU);ctx.fill();}
+      break;
     case 'r':drawMeshAt(TREEMESH,x+0.5,y+0.5,0,hash(x,y)*TAU,0.95+hash(y,x)*0.25);break;
     case 'T':{const z=2.8;for(const [dx,dy] of [[0.1,0.1],[0.78,0.1],[0.1,0.78],[0.78,0.78]])block(x+dx,y+dy,x+dx+0.12,y+dy+0.12,0,z,{tex:'woodDark',v:0,edges:false});
       line(P3(x+0.16,y+0.84,0.3),P3(x+0.84,y+0.84,z-0.3),'#4a3826',2.5);line(P3(x+0.84,y+0.16,0.3),P3(x+0.84,y+0.84,z-0.3),'#4a3826',2.5);
@@ -2676,7 +2807,7 @@ function step(dt){
   updateAlarmEvents(dt);
   if(!guards.some(g=>g.state==='chase')&&!dogs.some(d=>d.state==='chase'))G.alarm=Math.max(0,G.alarm-dt);
   if(G.sirenT>0)G.sirenT-=dt;
-  updateHeartbeat(dt);updateAmbient(dt);updateGramophone();
+  updateHeartbeat(dt);updateAmbient(dt);updateGramophone();updatePA();
   if(G.phase!=='line'&&!G.over)updateClock(dt);
   updateDialog(dt);
   updateHud(false);
