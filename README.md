@@ -4,6 +4,8 @@ An isometric stealth adventure in a single HTML file, playable on desktop and on
 
 Open `index.html` in a browser. There's nothing to build or install.
 
+`prototype.html` is a standalone art-direction prototype: a yard, a barrack you can walk into, and a character turntable. It's for approving the next visual pass before it goes into the game.
+
 > Content note: the game depicts a fictional extermination camp, forced labour and the line of people walked into the East Block. Nothing graphic is shown, but it is meant to be heavy.
 
 ## A day in Grauhof
