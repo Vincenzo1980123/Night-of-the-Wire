@@ -1159,7 +1159,7 @@ function* paGen(sr){
 }
 /* ---- real recordings (public domain), fetched in the background; synthesised versions are the fallback ---- */
 // only files that exist are listed; more slots (march2, song, night, siren, fire, dog1-3) are wired below and fall back to synthesis
-const REC_FILES={march1:'audio/alte-kameraden.mp3'};
+const REC_FILES={march1:'audio/alte-kameraden.mp3',march2:'audio/defilier-marsch.mp3'};
 const REC={};
 function loadRecordings(){
   if(!AC||loadRecordings.done)return;loadRecordings.done=true;

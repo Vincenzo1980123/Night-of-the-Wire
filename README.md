@@ -72,4 +72,5 @@ The look is mid-1990s European isometric 3D adventure games: polygonal character
 
 ## Audio credits
 - `audio/alte-kameraden.mp3`: "Alte Kameraden" (Carl Teike, 1889), historical 78 rpm shellac recording by the Anker-Orchester (Anker 5387-10815), from the CC0-CH collection on Wikimedia Commons (File:Anker-5387-10815.ogg), public domain / CC0. Converted to mono MP3 and loudness-normalised.
+- `audio/defilier-marsch.mp3`: "Defilier-Marsch" (Carl Faust), historical 78 rpm recording by the Anker-Orchester (Anker 5387-10819), CC0-CH collection on Wikimedia Commons (File:Anker-5387-10819.ogg), public domain. Converted to mono MP3 and loudness-normalised.
 - All other music and sounds are synthesised in the browser and original to this game.
