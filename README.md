@@ -34,5 +34,10 @@ Open `index.html` in a browser. There's nothing to build or install.
 | Q | GROUP | Tell your friends to wait or follow |
 | P / Esc, M | II | Pause, sound on/off |
 
-## Sound
-The camp itself is silent. Prisoners whisper, guards and trustees shout, dogs bark, and at night a siren sometimes goes off.
+## Sound and text
+- **Silent camp:** there is no gibberish "speech" and there are no game beeps.
+- **Speech sounds:** a soft breath when someone whispers to you, and a muffled thud when a guard shouts.
+- **Danger sounds:** a distant bark from the dogs, a quiet heartbeat while you're being hunted, and a slow, far-off siren during the random night alarms.
+- **Action sounds:** soft physical noises, such as a click, a snip, a thud and the generator winding down.
+- **Subtitles:** speech appears as film-style subtitles at the bottom, at most two lines at once, and only from people within earshot. Above a character's head there's only a small marker showing who is talking: dots for whispers, a red mark for shouts.
+- **Action prompt:** sits just above the subtitles, with a faint ring on the floor under whatever it refers to.

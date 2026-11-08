@@ -72,17 +72,22 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 #banner{top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);font:22px var(--f-display);letter-spacing:.3em;color:var(--alarm);text-shadow:0 0 18px rgba(224,74,58,.6);opacity:0;transition:opacity .2s}
 #banner.on{opacity:1;animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:.35}}
-#dialog{left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(620px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--edge);border-left:3px solid var(--sodium);padding:10px 14px;opacity:0;transition:opacity .25s}
-#dialog.on{opacity:1}
-#dialog .who{font:13px var(--f-display);color:var(--sodium);letter-spacing:.06em;margin-bottom:3px}
-#dialog p{margin:0;font-size:16px;line-height:1.35}
-#dialog.hint{border-left-color:var(--wire)}#dialog.hint .who{color:var(--wire)}
-#dialog.whisper{border-left-style:dashed;background:rgba(12,15,22,.78)}
-#dialog.whisper p{font-style:italic;color:rgba(236,228,207,.88)}
-#dialog.whisper .who::after{content:" · whispering";color:var(--dim)}
-#dialog.shout{border-left-color:var(--alarm);background:rgba(40,8,6,.9)}
-#dialog.shout .who{color:var(--alarm)}
-#dialog.shout p{text-transform:uppercase;font-weight:700;letter-spacing:.02em;color:#ffe2d6}
+#lower{left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));width:min(640px,calc(100vw - 32px));display:flex;flex-direction:column;align-items:center;gap:6px}
+#prompt{font:600 13px var(--f-body);letter-spacing:.04em;color:var(--ink);background:var(--panel);border:1px solid var(--edge);border-left:3px solid var(--sodium);padding:6px 12px;border-radius:2px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#prompt.hold{border-left-color:var(--wire)}
+#prompt b{font-weight:700;color:var(--sodium);margin-right:8px;letter-spacing:.12em;font-size:11px}
+#prompt.hold b{color:var(--wire)}
+#subs{display:flex;flex-direction:column;gap:3px;align-items:center;width:100%}
+.sub{max-width:100%;text-align:center;font-size:15.5px;line-height:1.35;color:var(--ink);text-shadow:0 1px 2px #000;background:rgba(5,7,11,.62);padding:4px 10px;border-radius:2px;transition:opacity .35s}
+.sub .who{font:12px var(--f-display);letter-spacing:.05em;margin-right:7px;color:var(--sodium)}
+.sub.whisper .tx{font-style:italic;color:rgba(236,228,207,.85)}
+.sub.whisper .who{color:#c9bf9f}
+.sub.shout .who{color:var(--alarm)}
+.sub.shout .tx{font-weight:700;color:#ffd9cc}
+.sub.hint{background:rgba(10,20,32,.8);border-left:2px solid var(--wire);text-align:left}
+.sub.hint .who{color:var(--wire)}
+.sub.amb{font-size:14px}
+.sub.out{opacity:0}
 .screen{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-start;justify-content:center;background:radial-gradient(ellipse at 50% 35%,rgba(240,174,60,.10),transparent 60%),rgba(5,7,11,.93);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(24px + env(safe-area-inset-top,0px)) calc(24px + env(safe-area-inset-bottom,0px));overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y}
 .sheet{max-width:640px;width:100%;display:flex;flex-direction:column;gap:16px;margin-block:auto}
 .eyebrow{font:600 12px var(--f-body);letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
@@ -132,17 +137,17 @@ body.touch .mode{display:none}
   #crew .st{font-size:9.5px;padding:1px 4px}
   .mode,.iconbtn{padding:10px 8px;font-size:11px}
   .meter .bar{width:100px}
-  #dialog p{font-size:14.5px}
+  .sub{font-size:14px}.sub.amb{font-size:13px}
   #next{font-size:12.5px;max-width:200px}
   #banner{font-size:16px;letter-spacing:.2em;top:calc(64px + env(safe-area-inset-top,0px))}
 }
 @media (max-width:760px) and (min-height:521px){
-  body.touch #dialog{bottom:calc(205px + env(safe-area-inset-bottom,0px))}
+  body.touch #lower{bottom:calc(200px + env(safe-area-inset-bottom,0px))}
 }
 @media (max-height:520px){
   #tr{width:128px}
-  body.touch #dialog{bottom:calc(10px + env(safe-area-inset-bottom,0px));width:min(440px,calc(100vw - 400px));min-width:240px}
-  body.touch #dialog p{font-size:13.5px}
+  body.touch #lower{bottom:calc(8px + env(safe-area-inset-bottom,0px));width:min(440px,calc(100vw - 390px));min-width:240px}
+  body.touch .sub{font-size:13px}
   #stick{bottom:calc(16px + env(safe-area-inset-bottom,0px))}
   .tb{width:56px;height:56px}.tb.big{width:72px;height:72px}
   #tbtns{bottom:calc(12px + env(safe-area-inset-bottom,0px))}
@@ -186,7 +191,7 @@ body.touch .mode{display:none}
 </div>
 
 <div class="hud" id="banner">ALARM</div>
-<div class="hud" id="dialog"><div class="who"></div><p></p></div>
+<div class="hud" id="lower"><div id="prompt" hidden></div><div id="subs" aria-live="polite"></div></div>
 
 <div id="touch" hidden>
   <div id="tzone"></div>
@@ -456,7 +461,8 @@ function newGame(){
      flags:{beam:false,office:false,gate:false,fence:false},won:false,over:false,fade:0,fadeMsg:'',fadeOut:0,
      spotCd:[0,0,0,0],start:spawns.S,compHome:{mira:spawns.m,tomas:spawns.t,bram:spawns.b},dialogQ:[],dlg:null,hudKey:'',outside:false,leaveHinted:false,shake:0,
      alarmEvT:85,queue:{active:false,npcs:[],nextT:24,count:0},doorOpen:false,
-     hints:{},convo:{A:{i:0,t:2},B:{i:0,t:6},C:{i:0,t:4}},news:[],intrusiveT:30,abuseT:5,actHeld:false};
+     hints:{},convo:{A:{i:0,t:2},B:{i:0,t:6},C:{i:0,t:4}},news:[],intrusiveT:30,abuseT:5,actHeld:false,subs:[],sirenT:0};
+  document.getElementById('subs').replaceChildren();
   computeFloor();
   P=mkChar({x:spawns.S.x,y:spawns.S.y,look:LOOKS.player,name:'Aren',mode:0,stamina:100,tired:false,busy:null,isPlayer:true,dir:Math.PI*1.25});
   comps=[
@@ -591,7 +597,7 @@ function updateWork(dt){
   }else{
     if(Math.hypot(P.x-J.spot.x,P.y-J.spot.y)>1.6)return;
     P.working=true;G.shift+=dt/J.time;
-    if(G.job==='office'){G.abuseT-=dt;if(G.abuseT<=0){G.abuseT=5+Math.random()*3;const line=pick(OFFICE_ABUSE);showDialog('Guard Stahl',line,3.2,'shout');voice('shout',line,0.9);}}
+    if(G.job==='office'){G.abuseT-=dt;if(G.abuseT<=0){G.abuseT=5+Math.random()*3;const line=pick(OFFICE_ABUSE);showDialog('Guard Stahl',line,3.2,'shout');}}
   }
   if(G.shift>=1)finishShift();
 }
@@ -634,11 +640,11 @@ function startLine(reason){
   for(let i=0;i<8;i++){
     if(i===3){Q.npcs.push(P);continue;}
     const seed=500+i*7;
-    Q.npcs.push(mkChar({kind:'queue',name:'Prisoner in the line',x:37.5,y:27.7+i,dir:-Math.PI/2,look:npcLook(seed,'queue',hash(seed,2)<0.2?0.72:undefined),seed,isNpc:true,talkT:2+i*2.2,isQueue:true}));
+    Q.npcs.push(mkChar({kind:'queue',name:'Someone in the line',x:37.5,y:27.7+i,dir:-Math.PI/2,look:npcLook(seed,'queue',hash(seed,2)<0.2?0.72:undefined),seed,isNpc:true,talkT:2+i*2.2,isQueue:true}));
   }
   P.x=37.5;P.y=27.7+3;P.inLine=true;P.busy=null;P.crouch=false;P.sprinting=false;P.seed=3;P.dir=-Math.PI/2;
   G.camX=iso(P.x,P.y)[0];G.camY=iso(P.x,P.y)[1];
-  G.dialogQ=[];G.dlg=null;
+  clearSubs();
   if(reason==='selection')queueDialog('hint',"Dawn of the sixth day. Kessler reads out the numbers of Block A. Yours is among them. Nobody runs. There is nowhere to run to.",7);
   else queueDialog('hint',"The third time, they don't take you back to the barrack.",5);
   queueDialog('Aren',"Walk slowly. Make it last.",4,'whisper');
@@ -738,91 +744,115 @@ function speechKind(e){
   if(e.isGuard||e.isDog||e.kind==='trustee')return 'shout';
   return zoneAt(e.x,e.y)==='safe'?'talk':'whisper';
 }
+function onScreenWorld(e){const p=iso(e.x,e.y,1);const x=VW/2+(p[0]-G.camX)*SC,y=VH/2+(p[1]-G.camY)*SC;return x>-20&&x<VW+20&&y>-20&&y<VH+20;}
 function say(e,text,kind,t){
   kind=kind||speechKind(e);
   t=t||Math.min(6.5,2.2+text.length*0.05);
   e.bubble={text,t,kind};
-  if(text.length>1&&P){
-    const d=dist(e,P);const range=kind==='shout'?13:kind==='talk'?7:4.5;
-    if(d<range){if(e.isDog)bark(1-d/(range+1));else voice(kind,text,1-d/(range+1));}
+  if(!P||text.length<2||G.over)return;
+  const d=dist(e,P);
+  if(e.isDog){if(d<12&&G.time-(G.lastBark??-9)>2.5){G.lastBark=G.time;sfx('bark',1-d/13);}return;}
+  const ear=kind==='shout'?9:kind==='talk'?7:5;
+  if(d>ear||!onScreenWorld(e))return;
+  if(!e.isComp&&G.time-(G.lastAmb??-9)<1.8)return;
+  const who=e.isGuard?`Guard ${e.name}`:e.name;
+  if(addSub(who,text,kind,Math.min(5,3+text.length*0.03),1)){
+    G.lastAmb=G.time;
+    if(kind==='shout'&&G.time-(G.lastShoutCue??-9)>3){G.lastShoutCue=G.time;sfx('shout',0.55*(1-d/10));}
   }
 }
+// subtitles: at most two lines on screen; story lines (pri 2) win over overheard ones (pri 1)
+function addSub(who,text,kind,dur,pri){
+  const box=document.getElementById('subs');
+  let s=who!=='hint'?G.subs.find(x=>x.who===who):null;
+  if(s&&s.pri>pri)return false;
+  if(!s){
+    if(G.subs.length>=2){const victim=G.subs.find(x=>x.pri===1)||(pri===2?G.subs[0]:null);if(!victim)return false;removeSub(victim);}
+    s={who,el:document.createElement('div')};G.subs.push(s);box.appendChild(s.el);
+  }
+  s.text=text;s.kind=kind;s.t=dur;s.pri=pri;
+  s.el.className='sub '+kind+(pri===1?' amb':'');
+  const w=document.createElement('span');w.className='who';w.textContent=who==='hint'?'Hint':who;
+  const tx=document.createElement('span');tx.className='tx';tx.textContent=text;
+  s.el.replaceChildren(w,tx);
+  return true;
+}
+function removeSub(s){s.el.remove();const i=G.subs.indexOf(s);if(i>=0)G.subs.splice(i,1);}
+function clearSubs(){for(const s of [...G.subs])removeSub(s);G.dialogQ=[];G.dlg=null;}
+function dialogCue(who,kind){
+  if(who==='hint'||who==='Aren'||G.time-(G.lastCue??-9)<1.2)return;G.lastCue=G.time;
+  sfx(kind==='shout'?'shout':'whisper',kind==='talk'?0.6:1);
+}
 function queueDialog(who,text,dur=4.5,kind){G.dialogQ.push({who,text,dur,kind:kind||(who==='hint'?'hint':'talk')});}
-function showDialog(who,text,dur=4.5,kind){G.dialogQ=[];G.dlg={who,text,t:dur,kind:kind||(who==='hint'?'hint':'talk')};renderDialog();}
-function renderDialog(){
-  const el=document.getElementById('dialog');
-  if(!G.dlg){el.classList.remove('on');return;}
-  el.className='hud on '+G.dlg.kind;
-  el.querySelector('.who').textContent=G.dlg.who==='hint'?'Hint':G.dlg.who;
-  el.querySelector('p').textContent=G.dlg.text;
+function showDialog(who,text,dur=4.5,kind){
+  kind=kind||(who==='hint'?'hint':'talk');G.dialogQ=[];
+  for(const s of [...G.subs])if(s.pri===2)removeSub(s);
+  addSub(who,text,kind,dur,2);dialogCue(who,kind);G.dlg=G.subs.find(s=>s.pri===2)||null;
 }
 function updateDialog(dt){
-  if(G.dlg){G.dlg.t-=dt;if(G.dlg.t<=0){G.dlg=null;renderDialog();}}
-  if(!G.dlg&&G.dialogQ.length){G.dlg=G.dialogQ.shift();G.dlg.t=G.dlg.dur;renderDialog();}
+  for(const s of [...G.subs]){s.t-=dt;s.el.classList.toggle('out',s.t<=0.35);if(s.t<=0)removeSub(s);}
+  if(!G.subs.some(s=>s.pri===2)&&G.dialogQ.length){const q=G.dialogQ.shift();addSub(q.who,q.text,q.kind,q.dur,2);dialogCue(q.who,q.kind);}
+  G.dlg=G.subs.find(s=>s.pri===2)||null;
 }
 
-/* ================= audio: silence, whispers, shouts, dogs, sirens ================= */
-let AC=null,master=null,sirenOsc=null,sirenGain=null,noiseBuf=null,soundOn=true,lastVoice=0;
+/* ================= audio: a silent camp; only sounds that mean something ================= */
+let AC=null,master=null,noiseBuf=null,soundOn=true,sirenA=null,sirenB=null,sirenGain=null;
 function initAudio(){
   if(AC){if(AC.state!=='running')AC.resume();return;}
   try{
     AC=new (window.AudioContext||window.webkitAudioContext)();
-    master=AC.createGain();master.gain.value=0.6;master.connect(AC.destination);
+    const comp=AC.createDynamicsCompressor();comp.threshold.value=-24;comp.ratio.value=4;comp.connect(AC.destination);
+    master=AC.createGain();master.gain.value=0.55;master.connect(comp);
     noiseBuf=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
-    sirenOsc=AC.createOscillator();sirenOsc.type='sawtooth';const lp=AC.createBiquadFilter();lp.frequency.value=1100;sirenGain=AC.createGain();sirenGain.gain.value=0;
-    sirenOsc.connect(lp).connect(sirenGain).connect(master);sirenOsc.start();
+    // distant air-raid siren: two slightly detuned soft oscillators, heavily low-passed
+    const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=850;lp.Q.value=0.3;
+    sirenGain=AC.createGain();sirenGain.gain.value=0;
+    sirenA=AC.createOscillator();sirenA.type='triangle';sirenB=AC.createOscillator();sirenB.type='sine';
+    sirenA.connect(lp);sirenB.connect(lp);lp.connect(sirenGain).connect(master);sirenA.start();sirenB.start();
     const s=AC.createBufferSource();s.buffer=AC.createBuffer(1,1,22050);s.connect(AC.destination);s.start(0);
     AC.resume();
   }catch(e){AC=null;}
 }
-function blip(f,d,type='square',v=0.1,slide=0){
-  if(!AC||!soundOn)return;
-  try{const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime;o.type=type;o.frequency.setValueAtTime(f,t);
-  if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+slide),t+d);
-  g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(0.001,t+d);o.connect(g).connect(master);o.start(t);o.stop(t+d+0.05);}catch(e){}
+function noiseHit(t,o){
+  const src=AC.createBufferSource();src.buffer=noiseBuf;
+  const f=AC.createBiquadFilter();f.type=o.type||'bandpass';f.frequency.value=o.freq;f.Q.value=o.q||1;
+  const g=AC.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(o.peak,t+o.attack);g.gain.exponentialRampToValueAtTime(0.0001,t+o.attack+o.decay);
+  src.connect(f).connect(g).connect(master);src.start(t,Math.random()*0.5,o.attack+o.decay+0.05);
 }
-function bark(vol){
-  if(!AC||!soundOn||vol<=0.02)return;
-  try{for(let k=0;k<2;k++){const t=AC.currentTime+0.02+k*0.24;
-    const o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(420,t);o.frequency.exponentialRampToValueAtTime(150,t+0.13);
-    const src=AC.createBufferSource();src.buffer=noiseBuf;const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=900;bp.Q.value=0.8;
-    const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1900;
-    const g=AC.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(0.2*vol,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+0.16);
-    o.connect(lp);src.connect(bp).connect(lp);lp.connect(g).connect(master);o.start(t);o.stop(t+0.18);src.start(t,Math.random()*0.5,0.17);}}catch(e){}
+function tone(t,o){
+  const osc=AC.createOscillator();osc.type=o.type||'sine';osc.frequency.setValueAtTime(o.f0,t);osc.frequency.exponentialRampToValueAtTime(o.f1,t+o.attack+o.decay);
+  const g=AC.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(o.peak,t+o.attack);g.gain.exponentialRampToValueAtTime(0.0001,t+o.attack+o.decay);
+  let n=osc;if(o.lp){const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=o.lp;osc.connect(f);n=f;}
+  n.connect(g).connect(master);osc.start(t);osc.stop(t+o.attack+o.decay+0.05);
 }
-function voice(kind,text,vol){
+function sfx(name,vol=1){
   if(!AC||!soundOn||vol<=0.02)return;
-  const now=AC.currentTime;if(kind!=='shout'&&now-lastVoice<0.4)return;lastVoice=now;
-  try{
-    const words=text.split(/\s+/).length;
-    const n=Math.min(kind==='shout'?12:9,Math.max(2,Math.round(words*1.3)));
-    let t=now+0.02;
-    for(let i=0;i<n;i++){
-      if(kind==='whisper'){
-        const d=0.07+Math.random()*0.07;
-        const src=AC.createBufferSource();src.buffer=noiseBuf;
-        const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=2400+Math.random()*2600;bp.Q.value=1.4;
-        const g=AC.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(0.22*vol,t+d*0.35);g.gain.exponentialRampToValueAtTime(0.0001,t+d);
-        src.connect(bp).connect(g).connect(master);src.start(t,Math.random()*0.8,d+0.03);
-        t+=d+0.05+(Math.random()<0.18?0.14:0);
-      }else{
-        const shout=kind==='shout';const d=shout?0.09+Math.random()*0.07:0.07+Math.random()*0.06;
-        const base=shout?95+Math.random()*75:165+Math.random()*80;
-        const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=shout?1500:650;
-        const g=AC.createGain();const v=(shout?0.13:0.03)*vol;
-        g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(v,t+0.012);g.gain.exponentialRampToValueAtTime(0.0001,t+d);
-        lp.connect(g).connect(master);
-        for(const det of shout?[1,1.013]:[1]){const o=AC.createOscillator();o.type=shout?'sawtooth':'triangle';o.frequency.setValueAtTime(base*det,t);o.frequency.linearRampToValueAtTime(base*det*(0.82+Math.random()*0.3),t+d);o.connect(lp);o.start(t);o.stop(t+d+0.02);}
-        t+=d+(shout?0.025:0.055)+(Math.random()<0.15?0.12:0);
-      }
-    }
-  }catch(e){}
+  const t=AC.currentTime+0.01;
+  try{switch(name){
+    case 'whisper':noiseHit(t,{freq:1900,q:0.8,peak:0.07*vol,attack:0.09,decay:0.32});break;                 // a breath
+    case 'shout':tone(t,{f0:120,f1:75,peak:0.1*vol,attack:0.006,decay:0.16,lp:380});noiseHit(t,{freq:420,q:0.7,peak:0.045*vol,attack:0.004,decay:0.1});break; // a muffled bark of a voice
+    case 'bark':for(const k of [0,0.3]){tone(t+k,{f0:300,f1:170,type:'triangle',peak:0.05*vol,attack:0.008,decay:0.11,lp:800});noiseHit(t+k,{freq:750,q:1.1,peak:0.035*vol,attack:0.005,decay:0.09});}break;
+    case 'pickup':noiseHit(t,{freq:2600,q:1.2,peak:0.07,attack:0.01,decay:0.07});noiseHit(t+0.08,{freq:2200,q:1.2,peak:0.06,attack:0.01,decay:0.08});break; // cloth rustle
+    case 'click':noiseHit(t,{freq:3600,q:5,peak:0.14,attack:0.001,decay:0.025});noiseHit(t+0.1,{freq:2900,q:5,peak:0.12,attack:0.001,decay:0.03});break;
+    case 'snip':noiseHit(t,{type:'highpass',freq:4500,q:0.7,peak:0.05,attack:0.001,decay:0.045});break;
+    case 'thud':tone(t,{f0:85,f1:45,peak:0.14*vol,attack:0.005,decay:0.3,lp:260});tone(t,{f0:170,f1:100,peak:0.05*vol,attack:0.005,decay:0.16,lp:420});break;
+    case 'powerdown':tone(t,{f0:110,f1:28,peak:0.07,attack:0.02,decay:2.4,lp:420});tone(t,{f0:230,f1:58,peak:0.03,attack:0.02,decay:2.2,lp:600});break;
+    case 'heart':for(const [k,v] of [[0,1],[0.19,0.7]]){tone(t+k,{f0:62,f1:40,peak:0.13*vol*v,attack:0.004,decay:0.12,lp:160});tone(t+k,{f0:140,f1:95,peak:0.045*vol*v,attack:0.004,decay:0.09,lp:320});}break;
+  }}catch(e){}
 }
 function updateAudio(){
-  if(!AC)return;
-  master.gain.value=soundOn&&running&&!paused?0.6:0;
-  sirenGain.gain.value=G.alarm>0&&G.phase==='night'?0.07:0;
-  sirenOsc.frequency.value=520+220*Math.sin(G.time*2.6);
+  if(!AC||!sirenGain)return;
+  const t=AC.currentTime;
+  master.gain.setTargetAtTime(soundOn&&running&&!paused?0.55:0,t,0.05);
+  const on=(G.sirenT||0)>0&&G.phase==='night';
+  sirenGain.gain.setTargetAtTime(on?0.032:0,t,on?0.8:1.2);
+  const ph=(G.time%7)/7, f=260+240*(0.5-0.5*Math.cos(ph*Math.PI*2));
+  sirenA.frequency.setTargetAtTime(f,t,0.05);sirenB.frequency.setTargetAtTime(f*1.006,t,0.05);
+}
+function updateHeartbeat(dt){
+  const hunted=guards.some(g=>g.state==='chase'&&g.target&&(g.target===P||g.target.isComp))||dogs.some(d=>d.state==='chase');
+  G.hbT=(G.hbT||0)-dt;
+  if(hunted&&G.hbT<=0){G.hbT=0.78;sfx('heart');}
 }
 
 /* ================= perception ================= */
@@ -876,7 +906,7 @@ function hear(g,x,y){
   g.state='suspicious';g.lastSeen={x,y};g.susp=Math.max(g.susp,0.6);g.lookT=4;
 }
 function startChase(g,t){
-  if(g.state!=='chase'){say(g,pick(CHASE));g.shoutT=4;blip(880,0.25,'square',0.08,-300);}
+  if(g.state!=='chase'){say(g,pick(CHASE));g.shoutT=6;}
   g.state='chase';g.target=t;g.lastSeen={x:t.x,y:t.y};g.lost=0;g.susp=1;g.warnT=null;
   G.alarm=Math.max(G.alarm,12);
   for(const o of guards)if(o!==g&&o.state!=='ko'&&o.state!=='chase'&&dist(o,g)<10){o.state='suspicious';o.lastSeen={x:t.x,y:t.y};o.susp=0.7;o.lookT=6;}
@@ -890,12 +920,12 @@ function capture(t,by){
   t.state='captured';t.x=22.5+idx*1.6;t.y=17.5;t.path=null;t.moving=false;t.crouch=false;t.work=null;
   grid[18][24]='p';computeFloor();
   const speaker=by.isDog?by.handler:by;if(speaker&&speaker.state!=='ko')say(speaker,"Another one for the cells. The East line at dawn.");
-  showDialog(t.name,t.lines.caught,4.5,'whisper');blip(200,0.5,'sawtooth',0.08,-120);
+  showDialog(t.name,t.lines.caught,4.5,'whisper');sfx('thud',0.8);
   updateHud(true);
 }
 function playerCaught(){
   G.lives--;G.caught++;G.shake=0.6;
-  blip(140,0.8,'sawtooth',0.12,-80);
+  sfx('thud',1.2);
   if(G.lives<=0){startLine('caught');return;}
   G.fade=1.6;G.fadeMsg='Caught';
   P.x=G.start.x;P.y=G.start.y;P.busy=null;P.dir=Math.PI*1.25;P.sleeping=false;G.ff=1;
@@ -955,7 +985,7 @@ function updatePlayer(dt){
   if(!G.hints.east&&G.phase==='night'&&P.x>28.5&&P.y>12&&P.y<19){G.hints.east=true;showDialog('hint',"The East compound. Guards in there react almost instantly. Nobody who walks through that door comes back out.",6);}
   if(G.phase==='night'&&G.burden>=45){G.intrusiveT-=dt;if(G.intrusiveT<=0){G.intrusiveT=35+Math.random()*25;if(!G.dlg)showDialog('Aren',pick(INTRUSIVE),3.5,'whisper');}}
   if(P.y<3.7&&!G.won){
-    if(!G.outside){G.outside=true;blip(520,0.3,'triangle',0.06,200);}
+    if(!G.outside){G.outside=true;}
     const live=comps.filter(c=>!c.lost);
     const following=live.filter(c=>c.state==='follow'||c.state==='work');
     if(following.every(c=>c.y<4)&&live.every(c=>c.state==='follow'||c.state==='work'))endGame('win');
@@ -1041,7 +1071,7 @@ function spawnQueue(){
   for(let i=0;i<n;i++){
     const seed=100+Q.count*13+i;
     const child=hash(seed,2)<0.22;
-    Q.npcs.push(mkChar({kind:'queue',name:'Prisoner in the line',x:37.5,y:27.7+i*1.0,dir:-Math.PI/2,look:npcLook(seed,'queue',child?0.72:undefined),seed,isNpc:true,talkT:3+i*2.5+Math.random()*5,isQueue:true}));
+    Q.npcs.push(mkChar({kind:'queue',name:'Someone in the line',x:37.5,y:27.7+i*1.0,dir:-Math.PI/2,look:npcLook(seed,'queue',child?0.72:undefined),seed,isNpc:true,talkT:3+i*2.5+Math.random()*5,isQueue:true}));
   }
   const esc=guards.find(g=>g.escort);if(esc)esc.shoutT=1;
   if(!G.hints.queue){G.hints.queue=true;queueDialog('Aren',"Another line to the East Block. Nobody comes back from there. Not us. Not if I can help it.",5,'whisper');}
@@ -1060,7 +1090,7 @@ function updateQueue(dt){
   G.doorOpen=Q.npcs.length>0&&Q.npcs[0].y<16.5;
   while(Q.npcs.length&&Q.npcs[0]!==P&&Q.npcs[0].y<14.55)Q.npcs.shift();
   if(G.phase==='line'&&Q.npcs[0]===P&&P.y<=14.76){G.fadeOut=Math.min(1,G.fadeOut+dt/3.5);if(G.fadeOut>=1&&!G.over)endGame('line');}
-  if(!Q.npcs.length){Q.active=false;Q.nextT=55+Math.random()*40;blip(55,0.9,'sine',0.12);}
+  if(!Q.npcs.length){Q.active=false;Q.nextT=55+Math.random()*40;const dd=Math.hypot(P.x-37.5,P.y-14.5);if(dd<14)sfx('thud',0.6*(1-dd/15));}
 }
 function updateGuard(g,dt){
   if(g.bubble){g.bubble.t-=dt;if(g.bubble.t<=0)g.bubble=null;}
@@ -1071,7 +1101,7 @@ function updateGuard(g,dt){
   if(g.state==='chase'){
     if(best){g.target=best;g.lastSeen={x:best.x,y:best.y};g.lost=0;}else g.lost+=dt;
     G.alarm=Math.max(G.alarm,10);
-    if(g.shoutT<=0){g.shoutT=3+Math.random()*3;say(g,pick(CHASE));}
+    if(g.shoutT<=0){g.shoutT=5+Math.random()*4;say(g,pick(CHASE));}
     const tg=(g.lost<0.6&&g.target)?g.target:g.lastSeen;
     goTo(g,tg.x,tg.y,3.25,dt);
     if(g.target&&g.lost<1&&dist(g,g.target)<0.6){capture(g.target,g);return;}
@@ -1099,7 +1129,7 @@ function updateGuard(g,dt){
     if(g.warnT!=null){g.unseenT+=dt;if(g.unseenT>10){g.warnT=null;g.unseenT=0;}}
   }
   if(g.shoutT<=0){
-    g.shoutT=7+Math.random()*9;
+    g.shoutT=12+Math.random()*12;
     if(g.escort&&G.queue.active&&dist(g,P)<16)say(g,pick(ESCORT));
     else if(G.alarm>0&&G.phase==='night')say(g,pick(ALARM));
     else{
@@ -1200,7 +1230,7 @@ function updateAlarmEvents(dt){
   G.alarmEvT-=dt;
   if(G.alarmEvT<=0){
     G.alarmEvT=80+Math.random()*70;
-    G.alarm=Math.max(G.alarm,10);
+    G.alarm=Math.max(G.alarm,10);G.sirenT=11;
     for(const g of guards)if(g.state!=='ko')g.shoutT=0.3+Math.random()*1.5;
     if(!G.hints.alarm){G.hints.alarm=true;showDialog('hint',"The siren. Guards treat anyone outside as a runner until it stops. Get under a barrack roof.",6);}
   }
@@ -1231,25 +1261,25 @@ function tileAction(ch,x,y){
   const night=G.phase==='night';
   switch(ch){
     case 'j':{const b=compNear('bram');
-      return b?{label:'Ask Bram to lift the beam',fn:()=>assignWork(b,x,y,2.6,()=>{grid[y][x]='d';G.flags.beam=true;computeFloor();blip(90,0.5,'sawtooth',0.1,-40);G.shake=0.3;})}
+      return b?{label:'Ask Bram to lift the beam',fn:()=>assignWork(b,x,y,2.6,()=>{grid[y][x]='d';G.flags.beam=true;computeFloor();sfx('thud');G.shake=0.3;})}
         :{label:'Barred workshop door',fn:()=>showDialog('Aren',"They bar it with a beam at night. Far too heavy for me. Bram could shift this. Or work in there by day.",4,'whisper')};}
-    case 'w':return {label:'Take the wire cutters',fn:()=>{grid[y][x]='W';G.has.cutters=true;blip(660,0.15,'triangle',0.06,300);showDialog('Aren',"Wire cutters. Rusty, but they'll bite.",3.5,'whisper');updateHud(true);}};
+    case 'w':return {label:'Take the wire cutters',fn:()=>{grid[y][x]='W';G.has.cutters=true;sfx('pickup');showDialog('Aren',"Wire cutters. Rusty, but they'll bite.",3.5,'whisper');updateHud(true);}};
     case 'o':{const m=compNear('mira');
-      return m?{label:'Ask Mira to pick the office lock',fn:()=>assignWork(m,x,y,3.2,()=>{grid[y][x]='d';G.flags.office=true;computeFloor();blip(900,0.08,'square',0.05);})}
+      return m?{label:'Ask Mira to pick the office lock',fn:()=>assignWork(m,x,y,3.2,()=>{grid[y][x]='d';G.flags.office=true;computeFloor();sfx('click');})}
         :{label:'Locked office door',fn:()=>showDialog('Aren',"Locked. Mira could open this in her sleep.",3.5,'whisper')};}
-    case 'k':return {label:'Take the gate keycard',fn:()=>{grid[y][x]='K';G.has.keycard=true;blip(780,0.15,'triangle',0.06,400);showDialog('Aren',"The gate card.",3,'whisper');updateHud(true);}};
+    case 'k':return {label:'Take the gate keycard',fn:()=>{grid[y][x]='K';G.has.keycard=true;sfx('pickup');showDialog('Aren',"The gate card.",3,'whisper');updateHud(true);}};
     case 'g':{if(!night)return notByDay;const t=compNear('tomas');
       if(t)return {label:'Ask Tomas to kill the generator',fn:()=>assignWork(t,x,y,3.6,powerOff)};
       if(G.breaker)return {label:'Pull the breaker (third lever)',fn:()=>{P.busy={t:0,time:4*slow(),label:'Third lever',done:powerOff};}};
       return {label:'Generator',fn:()=>showDialog('Aren',"I'd only electrocute myself. Tomas knows this machine. The East detail is said to know the breaker.",4,'whisper')};}
-    case 'G':if(!night)return notByDay;return G.has.keycard?{label:'Open the inner gate',fn:()=>{setTiles('G','_',8);G.flags.gate=true;blip(240,0.4,'square',0.05,120);updateHud(true);}}
+    case 'G':if(!night)return notByDay;return G.has.keycard?{label:'Open the inner gate',fn:()=>{setTiles('G','_',8);G.flags.gate=true;sfx('click');sfx('thud',0.5);updateHud(true);}}
         :{label:'Inner gate',fn:()=>showDialog('Aren',"Card reader. The guard office keeps a spare card.",3.5,'whisper')};
     case 'F':if(y!==4||x<1||x>42||x===31)return null;
       if(!night)return notByDay;
       if(G.power)return {label:'Outer fence (live)',fn:()=>{showDialog('Aren',"It's humming. Touch that and I'm dead. The power has to go first.",4,'whisper');}};
       if(!G.has.cutters)return {label:'Outer fence',fn:()=>showDialog('Aren',"Dead wire now, but I need something to cut it.",4,'whisper')};
-      return {label:'Cut through the fence',fn:()=>{P.busy={t:0,time:2.2*slow(),label:'Cutting',done:()=>{grid[y][x]='c';G.flags.fence=true;blip(1400,0.08,'square',0.05);updateHud(true);showDialog('Aren',"Through. Into the trees, everyone.",3.5,'whisper');}};}};
-    case 'p':return {label:'Slide the cell bolt',fn:()=>{grid[y][x]='d';computeFloor();blip(500,0.2,'square',0.05,-200);for(const c of comps)if(c.state==='captured'){c.state='follow';say(c,c.lines.freed);}updateHud(true);}};
+      return {label:'Cut through the fence',fn:()=>{P.busy={t:0,time:2.2*slow(),label:'Cutting',done:()=>{grid[y][x]='c';G.flags.fence=true;sfx('snip');updateHud(true);showDialog('Aren',"Through. Into the trees, everyone.",3.5,'whisper');}};}};
+    case 'p':return {label:'Slide the cell bolt',fn:()=>{grid[y][x]='d';computeFloor();sfx('click');for(const c of comps)if(c.state==='captured'){c.state='follow';say(c,c.lines.freed);}updateHud(true);}};
     case 'u':{if(!night||x>7)return null;if(G.alarm>0||guards.some(g=>g.state==='chase'))return null;
       return {label:'Sleep until dawn',fn:()=>{P.sleeping=true;G.ff=10;for(const c of comps)if(c.state==='follow')c.state='wait';showDialog('Aren',"Sleep. If it comes.",2.5,'whisper');}};}
   }
@@ -1292,34 +1322,34 @@ function findInteract(){
   }
   for(const c of comps){
     const d=dist(c,P);if(d>1.5)continue;
-    if(c.state==='day')consider(d,{label:`Whisper to ${c.name}`,fn:()=>{const line=c.recruited?c.lines.day:c.lines.dayRecruit;c.recruited=true;say(c,line,'whisper');showDialog(c.name,line,5,'whisper');updateHud(true);}});
-    else if(c.state==='idle')consider(d,{label:`Talk to ${c.name}`,fn:()=>{c.state='follow';c.recruited=true;const k=speechKind(c);showDialog(c.name,c.lines.recruit,5.5,k);voice(k,c.lines.recruit,1);updateHud(true);}});
-    else if(c.state==='follow')consider(d+1.6,{label:`Tell ${c.name} to wait`,fn:()=>{c.state='wait';say(c,"I'll stay low.");updateHud(true);}});
-    else if(c.state==='wait')consider(d,{label:`Tell ${c.name} to follow`,fn:()=>{c.state='follow';say(c,'Right behind you.');updateHud(true);}});
+    if(c.state==='day')consider(d,{at:c,label:`Whisper to ${c.name}`,fn:()=>{const line=c.recruited?c.lines.day:c.lines.dayRecruit;c.recruited=true;say(c,line,'whisper');showDialog(c.name,line,5,'whisper');updateHud(true);}});
+    else if(c.state==='idle')consider(d,{at:c,label:`Talk to ${c.name}`,fn:()=>{c.state='follow';c.recruited=true;const k=speechKind(c);showDialog(c.name,c.lines.recruit,5.5,k);updateHud(true);}});
+    else if(c.state==='follow')consider(d+1.6,{at:c,label:`Tell ${c.name} to wait`,fn:()=>{c.state='wait';say(c,"I'll stay low.");updateHud(true);}});
+    else if(c.state==='wait')consider(d,{at:c,label:`Tell ${c.name} to follow`,fn:()=>{c.state='follow';say(c,'Right behind you.');updateHud(true);}});
   }
   const safe=zoneAt(P.x,P.y)==='safe';
   for(const n of [...G.npcs,...G.queue.npcs,...G.detail]){
     if(n===P)continue;const d=dist(n,P);if(d>1.45)continue;
-    consider(d+0.3,{label:`${safe||n.kind==='trustee'?'Talk to':'Whisper to'} ${n.name}`,fn:()=>npcTalk(n)});
+    consider(d+0.3,{at:n,label:`${safe||n.kind==='trustee'?'Talk to':'Whisper to'} ${n.name}`,fn:()=>npcTalk(n)});
   }
   for(const dg of dogs){
     const d=dist(dg,P);if(d>1.7||dg.eatT>0||G.scraps<=0)continue;
-    consider(d+0.25,{label:`Throw a scrap to ${dg.name} (${G.scraps})`,fn:()=>{G.scraps--;dg.eatT=22;dg.state='heel';dg.target=null;dg.alertT=0;dg.bubble=null;updateHud(true);}});
+    consider(d+0.25,{at:dg,label:`Throw a scrap to ${dg.name} (${G.scraps})`,fn:()=>{G.scraps--;dg.eatT=22;dg.state='heel';dg.target=null;dg.alertT=0;dg.bubble=null;updateHud(true);}});
   }
   for(const g of guards){
     if(g.state==='ko'||g.state==='chase')continue;
     const d=dist(g,P);if(d>1.4)continue;
     if(Math.abs(angDiff(Math.atan2(P.y-g.y,P.x-g.x),g.dir))>1.85&&d<1.25&&G.phase==='night')
-      consider(d-0.5,{label:'Knock the guard out',fn:()=>{g.state='ko';g.koT=22;g.susp=0;g.bubble=null;g.path=null;g.warnT=null;blip(110,0.18,'square',0.1,-60);G.shake=0.2;
+      consider(d-0.5,{at:g,label:'Knock the guard out',fn:()=>{g.state='ko';g.koT=22;g.susp=0;g.bubble=null;g.path=null;g.warnT=null;sfx('thud',0.7);G.shake=0.2;
         if(dogs.some(x=>x.handler===g)&&!G.hints.loose){G.hints.loose=true;queueDialog('hint',"His dog is loose now, and it will go for anyone it smells.",4);}}});
-    else consider(d+0.4,{label:`Speak to Guard ${g.name}`,fn:()=>guardTalk(g)});
+    else consider(d+0.4,{at:g,label:`Speak to Guard ${g.name}`,fn:()=>guardTalk(g)});
   }
   const px=Math.floor(P.x),py=Math.floor(P.y);
   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
     const x=px+dx,y=py+dy;if(!inb(x,y))continue;
     const ch=grid[y][x];if(!'jwokgGFpu'.includes(ch))continue;
     const d=Math.hypot(x+.5-P.x,y+.5-P.y);if(d>1.45)continue;
-    consider(d,tileAction(ch,x,y));
+    const o=tileAction(ch,x,y);if(o)consider(d,Object.assign({},o,{at:{x:x+.5,y:y+.5}}));
   }
   return best;
 }
@@ -1335,7 +1365,7 @@ function groupToggle(){
   updateHud(true);
 }
 function powerOff(){
-  G.power=false;blip(400,1.6,'sawtooth',0.1,-360);G.shake=0.5;
+  G.power=false;sfx('powerdown');G.shake=0.5;
   setTiles('g','q');
   queueDialog('hint','The camp is dark. Lamps and searchlights are off and the outer fence is dead until morning. Guards no longer order anyone inside: if they see you, they chase.',6);
   for(const g of guards)if(g.state==='patrol'&&Math.random()<.6){g.shoutT=0.5+Math.random()*2;}
@@ -1360,7 +1390,6 @@ function endGame(kind){
     let txt=n===3?'Behind you Grauhof is still dark and the chimney is still smoking. The morning roll call will find four empty bunks. You will tell the world what the East Block is for.':n===0?'Freedom smells of pine and rain, and of everyone you left behind. You promise yourself you will tell people what happens behind that wire.':`You carry ${left.join(' and ')}'s names with you. Someone outside has to know.`;
     if(G.found.length)txt+=` In your pocket: ${G.found.join(', ')}.`;
     document.getElementById('endText').textContent=txt;
-    blip(523,0.4,'triangle',0.06);setTimeout(()=>blip(659,0.4,'triangle',0.06),200);setTimeout(()=>blip(784,0.6,'triangle',0.06),400);
   }else{
     stamp.textContent='The East Block';
     document.getElementById('endTitle').textContent='The line does not stop.';
@@ -1642,7 +1671,6 @@ function coneRays(g,range){
   }
   return pts;
 }
-function wrapText(t,maxW){const words=t.split(' ');const lines=[];let cur='';for(const w of words){const test=cur?cur+' '+w:w;if(ctx.measureText(test).width>maxW&&cur){lines.push(cur);cur=w;}else cur=test;}if(cur)lines.push(cur);return lines.slice(0,4);}
 function ambientAlpha(){
   if(G.phase==='day'||G.phase==='pick'){const t=G.clock/DAY_LEN;return t>0.82?0.08+(t-0.82)/0.18*0.58:0.08;}
   return G.power?0.66:0.78;
@@ -1663,6 +1691,8 @@ function render(){
     for(const s of G.stains){if(s.a<=0)continue;const p=iso(s.x,s.y);ctx.fillStyle=`rgba(28,22,20,${0.75*s.a})`;ctx.beginPath();ctx.ellipse(p[0],p[1],s.r*55,s.r*26,hash(s.x,s.y)*0.6,0,7);ctx.fill();
       if(s.obj&&s.a<0.7){ctx.fillStyle='rgba(220,210,190,.7)';ctx.fillRect(p[0]-3,p[1]-2,6,3);}}
   }
+  curIt=(running&&!paused&&!P.busy&&!P.inLine&&G.phase!=='pick')?findInteract():null;
+  if(curIt&&curIt.at){const p=iso(curIt.at.x,curIt.at.y);const r=15+Math.sin(G.time*5)*1.5;ctx.strokeStyle='rgba(240,174,60,.55)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(p[0],p[1],r*1.5,r*0.75,0,0,7);ctx.stroke();}
   // job marker
   if(G.phase==='day'&&G.job&&!G.shiftDone){
     const sp=G.job==='east'?(pInside?null:{x:37.5,y:15.2}):JOBS[G.job].spot;
@@ -1739,40 +1769,41 @@ function render(){
       if(!chase){ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(x-14,y,28,4);ctx.fillStyle='#f0ae3c';ctx.fillRect(x-14,y,28*Math.min(1,g.susp),4);}
     }
   }
-  const bubbles=[...comps,...guards,...G.npcs,...G.queue.npcs,...G.detail,...dogs].filter(e=>e!==P&&e.bubble&&e.bubble.text.length>3&&!(inEast(e.x,e.y)&&!pInside));
-  for(const e of bubbles){
-    const k=e.bubble.kind,shout=k==='shout',wh=k==='whisper';
-    let [x,y]=toScreen(e.x,e.y,e.isDog?1.1:(e.look.scale||1)*(e.sit?1.6:2.1));if(!onScreen([x,y]))continue;
-    ctx.font=shout?'700 13px "Archivo Narrow",sans-serif':wh?'italic 600 12.5px "Archivo Narrow",sans-serif':'600 13px "Archivo Narrow",sans-serif';
-    const text=shout?e.bubble.text.toUpperCase():e.bubble.text;
-    const lines=wrapText(text,shout?230:190);const lh=15;
-    const w=Math.max(...lines.map(l=>ctx.measureText(l).width))+16,h=lines.length*lh+8;
-    if(shout)x+=(Math.random()-.5)*1.6;
-    ctx.globalAlpha=Math.min(1,e.bubble.t*2);
-    ctx.fillStyle=shout?'rgba(92,18,12,.94)':wh?'rgba(222,216,198,.68)':'rgba(236,228,207,.94)';
-    ctx.beginPath();ctx.roundRect(x-w/2,y-12-h,w,h,3);ctx.fill();
-    if(wh){ctx.setLineDash([3,3]);ctx.strokeStyle='rgba(20,18,14,.45)';ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);}
-    ctx.beginPath();ctx.moveTo(x-5,y-12);ctx.lineTo(x+5,y-12);ctx.lineTo(x,y-5);ctx.closePath();ctx.fill();
-    ctx.fillStyle=shout?'#ffe2d6':'#15130f';
-    lines.forEach((l,i)=>ctx.fillText(l,x,y-12-h+lh*(i+1)));
+  // who is speaking: a small mark beside the head, never text over the scene
+  const speakers=[...comps,...guards,...G.npcs,...G.queue.npcs,...G.detail,...dogs].filter(e=>e!==P&&e.bubble&&e.bubble.t>0&&e.bubble.text.length>1&&!(inEast(e.x,e.y)&&!pInside));
+  for(const e of speakers){
+    const k=e.bubble.kind;
+    const [hx,hy]=toScreen(e.x,e.y,e.isDog?0.75:(e.look.scale||1)*(e.sit?1.25:1.6));if(!onScreen([hx,hy]))continue;
+    const x=hx+(e.isDog?14:13)*SC,y=hy;const a=Math.min(1,e.bubble.t*2);
+    ctx.globalAlpha=a;
+    if(e.isDog){ctx.strokeStyle='rgba(255,170,120,.85)';ctx.lineWidth=1.5;for(let i=0;i<2;i++){ctx.beginPath();ctx.arc(x-4,y,5+i*4,-0.7,0.7);ctx.stroke();}}
+    else if(k==='shout'){ctx.fillStyle='rgba(150,30,22,.92)';ctx.beginPath();ctx.roundRect(x-2,y-8,16,12,2);ctx.fill();ctx.beginPath();ctx.moveTo(x,y+3);ctx.lineTo(x-4,y+7);ctx.lineTo(x+4,y+3);ctx.fill();
+      ctx.fillStyle='#ffe2d6';ctx.fillRect(x+3,y-6,2,5);ctx.fillRect(x+3,y,2,2);ctx.fillRect(x+8,y-6,2,5);ctx.fillRect(x+8,y,2,2);}
+    else{const ph=G.time*3;ctx.fillStyle=k==='whisper'?'rgba(225,218,198,.8)':'rgba(240,234,218,.95)';
+      for(let i=0;i<3;i++){ctx.globalAlpha=a*(0.35+0.65*Math.max(0,Math.sin(ph-i*0.9)));ctx.beginPath();ctx.arc(x+i*5,y-2,k==='whisper'?1.6:2,0,7);ctx.fill();}}
     ctx.globalAlpha=1;
   }
   const bar=(x,y,f,label)=>{ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(x-30,y,60,6);ctx.fillStyle='#9fd3ff';ctx.fillRect(x-30,y,60*clamp(f,0,1),6);if(label){ctx.font='600 11px "Archivo Narrow",sans-serif';ctx.fillStyle='#9fd3ff';ctx.fillText(label,x,y-4);}};
   for(const c of comps)if(c.state==='work'&&c.work.started){const [x,y]=toScreen(c.x,c.y,2.3);bar(x,y,c.work.t/c.work.time);}
   if(P.busy){const [x,y]=toScreen(P.x,P.y,2.3);bar(x,y,P.busy.t/P.busy.time,P.busy.label);}
   if(P.working){const [x,y]=toScreen(P.x,P.y,2.1);if(G.job==='east'){const s=nearStain();if(s)bar(x,y,1-s.a,'Scrubbing');}else bar(x,y,G.shift,'Working');}
-  if(running&&!paused&&!P.busy&&!P.inLine&&G.phase!=='pick'){
-    const it=findInteract();
-    if(it&&!(it.hold&&P.working)){const [x,y]=toScreen(P.x,P.y,-0.6);const key=isTouch()?'ACT':'E';const t=it.hold?it.label:`${key}  ${it.label}`;
-      ctx.font='600 14px "Archivo Narrow",sans-serif';const w=ctx.measureText(t).width+20;
-      ctx.fillStyle='rgba(12,15,22,.9)';ctx.fillRect(x-w/2,y,w,24);ctx.fillStyle=it.hold?'#9fd3ff':'#f0ae3c';ctx.fillRect(x-w/2,y,3,24);
-      ctx.fillStyle='#ece4cf';ctx.fillText(t,x+2,y+17);}
-  }
+  updatePrompt(curIt);
   if(P.sleeping){ctx.fillStyle='rgba(2,3,8,.55)';ctx.fillRect(0,0,VW,VH);ctx.font='28px "Special Elite",monospace';ctx.fillStyle='rgba(236,228,207,.7)';ctx.fillText('Sleeping…',VW/2,VH*0.35);}
   if(G.fade>0){ctx.fillStyle=`rgba(40,4,4,${Math.min(1,G.fade)*0.85})`;ctx.fillRect(0,0,VW,VH);ctx.font='48px "Special Elite",monospace';ctx.fillStyle=`rgba(236,228,207,${Math.min(1,G.fade)})`;ctx.fillText(G.fadeMsg,VW/2,VH/2);}
   if(G.fadeOut>0){ctx.fillStyle=`rgba(0,0,0,${G.fadeOut})`;ctx.fillRect(0,0,VW,VH);}
   ctx.textAlign='start';
   drawMini();
+}
+let curIt=null,promptKey='';
+function updatePrompt(it){
+  const el=document.getElementById('prompt');
+  const show=it&&!(it.hold&&P.working);
+  const key=show?(it.hold?'h':'')+it.label+isTouch():'';
+  if(key===promptKey)return;promptKey=key;
+  if(!show){el.hidden=true;return;}
+  el.hidden=false;el.className=it.hold?'hold':'';
+  const b=document.createElement('b');b.textContent=it.hold?(isTouch()?'HOLD ACT':'HOLD E'):(isTouch()?'ACT':'E');
+  el.replaceChildren(b,it.hold?it.label.replace(/^Hold [^:]+:\s*/,''):it.label);
 }
 function drawMini(){
   const s=3;mctx.setTransform(1,0,0,1,0,0);mctx.fillStyle='#0d1118';mctx.fillRect(0,0,mini.width,mini.height);
@@ -1821,6 +1852,8 @@ function step(dt){
   updateSpots(dt);
   updateAlarmEvents(dt);
   if(!guards.some(g=>g.state==='chase')&&!dogs.some(d=>d.state==='chase'))G.alarm=Math.max(0,G.alarm-dt);
+  if(G.sirenT>0)G.sirenT-=dt;
+  updateHeartbeat(dt);
   if(G.phase!=='line'&&!G.over)updateClock(dt);
   updateDialog(dt);
   updateHud(false);
