@@ -2052,6 +2052,56 @@ function ambientAlpha(){
   if(G.phase==='day'||G.phase==='pick'){const t=G.clock/DAY_LEN;return t>0.82?0.08+(t-0.82)/0.18*0.58:0.08;}
   return G.power?0.66:0.78;
 }
+/* work guide: footprints to today's work place, a light over it, and a compass arrow when it's out of view */
+function workTarget(){
+  if(G.phase!=='day'||!G.job||G.shiftDone||P.inLine||P.sleeping)return null;
+  if(G.job==='east'){
+    if(!pInside)return {x:37.5,y:15.2,label:'East Block'};
+    let b=null,bd=1e9;for(const st of G.stains){if(st.a<=0)continue;const d=Math.hypot(st.x-P.x,st.y-P.y);if(d<bd){bd=d;b=st;}}
+    return b?{x:b.x,y:b.y,label:'Next stain',inside:true}:null;}
+  const sp=JOBS[G.job].spot;return {x:sp.x,y:sp.y,label:JOBS[G.job].name};
+}
+function updateGuide(dt){
+  const t=workTarget();G.guideT=(G.guideT||0)-dt;
+  if(!t){G.guide=null;return;}
+  if(!G.guide||G.guideT<=0||G.guide.tx!==t.x||G.guide.ty!==t.y){
+    G.guideT=0.4;const path=findPath(P.x,P.y,t.x,t.y,walkP);
+    const pts=[[P.x,P.y]];if(path)for(const n of path.slice(0,-1))pts.push([n.x,n.y]);pts.push([t.x,t.y]);
+    let len=0;for(let i=1;i<pts.length;i++)len+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
+    G.guide={pts,len,tx:t.x,ty:t.y,label:t.label,ok:!!path};}
+  else G.guide.pts[0]=[P.x,P.y];
+}
+function drawGuideTrail(){
+  const g=G.guide;if(!g||P.working||g.len<1.6)return;
+  const pts=g.pts,step=0.42,maxD=Math.min(g.len-0.7,14);let d=0,i=1,acc=0,k=0;
+  ctx.save();
+  for(let at=0.9;at<maxD;at+=step,k++){
+    while(i<pts.length&&acc+Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1])<at){acc+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);i++;}
+    if(i>=pts.length)break;
+    const a=pts[i-1],b=pts[i],sl=Math.hypot(b[0]-a[0],b[1]-a[1])||1,f=(at-acc)/sl,dx=(b[0]-a[0])/sl,dy=(b[1]-a[1])/sl;
+    const side=k%2?1:-1,x=a[0]+(b[0]-a[0])*f-dy*0.09*side,y=a[1]+(b[1]-a[1])*f+dx*0.09*side;
+    const p=iso(x,y),q=iso(x+dx,y+dy),ang=Math.atan2(q[1]-p[1],q[0]-p[0]);
+    const fade=Math.min(1,(maxD-at)/3)*Math.min(1,(at-0.9)/0.8+0.3),wave=0.45+0.55*Math.max(0,Math.sin(at*1.4-G.time*4.2));
+    ctx.globalAlpha=0.85*fade*wave;
+    ctx.save();ctx.translate(p[0],p[1]);ctx.rotate(ang);ctx.scale(1,0.62);
+    ctx.fillStyle='rgba(30,18,6,.55)';ctx.beginPath();ctx.ellipse(1.5,1.2,5,3,0,0,7);ctx.fill();ctx.beginPath();ctx.ellipse(-4.2,1.2,2.6,2.6,0,0,7);ctx.fill();
+    ctx.fillStyle='#ffbe48';ctx.beginPath();ctx.ellipse(1.5,0,4.2,2.3,0,0,7);ctx.fill();ctx.beginPath();ctx.ellipse(-4.2,0,1.9,1.9,0,0,7);ctx.fill();ctx.restore();
+  }
+  ctx.restore();ctx.globalAlpha=1;
+}
+function drawGuideBeacon(){
+  const t=G.guide;if(!t||P.working)return;
+  const pulse=0.6+0.4*Math.sin(G.time*3),b=iso(t.tx,t.ty,0),top=iso(t.tx,t.ty,3.4),w=10;
+  const gr=ctx.createLinearGradient(0,b[1],0,top[1]);gr.addColorStop(0,`rgba(255,190,72,${0.3*pulse})`);gr.addColorStop(1,'rgba(255,190,72,0)');
+  ctx.fillStyle=gr;ctx.beginPath();ctx.moveTo(b[0]-w,b[1]);ctx.lineTo(b[0]+w,b[1]);ctx.lineTo(top[0]+w*0.4,top[1]);ctx.lineTo(top[0]-w*0.4,top[1]);ctx.closePath();ctx.fill();
+  // a marker floating above the work place, seen over roofs
+  const m=iso(t.tx,t.ty,2.9+0.12*Math.sin(G.time*3.2));
+  ctx.save();ctx.translate(m[0],m[1]);ctx.lineJoin='round';
+  ctx.beginPath();ctx.moveTo(-9,-11);ctx.lineTo(9,-11);ctx.lineTo(0,1);ctx.closePath();
+  ctx.lineWidth=3.5;ctx.strokeStyle='rgba(20,14,8,.75)';ctx.stroke();ctx.fillStyle='#ffbe48';ctx.fill();
+  ctx.beginPath();ctx.moveTo(-5,-8.5);ctx.lineTo(5,-8.5);ctx.lineTo(0,-2.5);ctx.closePath();ctx.fillStyle='rgba(255,236,190,.6)';ctx.fill();
+  ctx.restore();
+}
 function render(){
   if(floorDirty)buildFloor();
   pInside=inEast(P.x,P.y)&&G.eastOpen&&!P.inLine;
@@ -2072,6 +2122,7 @@ function render(){
   }
   curIt=(running&&!paused&&!P.busy&&!P.inLine&&G.phase!=='pick')?findInteract():null;
   if(curIt&&curIt.at){const p=iso(curIt.at.x,curIt.at.y);const r=15+Math.sin(G.time*5)*1.5;ctx.strokeStyle='rgba(240,174,60,.55)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(p[0],p[1],r*1.5,r*0.75,0,0,7);ctx.stroke();}
+  updateGuide(frameDt);drawGuideTrail();
   // job marker
   if(G.phase==='day'&&G.job&&!G.shiftDone){
     const sp=G.job==='east'?(pInside?null:{x:37.5,y:15.2}):JOBS[G.job].spot;
@@ -2144,11 +2195,22 @@ function render(){
     const col=g.state==='chase'?'rgba(224,74,58,.20)':g.susp>0.3||g.state==='suspicious'||g.state==='search'?'rgba(240,174,60,.16)':night?'rgba(255,236,170,.07)':'rgba(255,236,170,.05)';
     ctx.beginPath();pts.forEach((p,i)=>{const q=iso(p[0],p[1]);i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);});ctx.closePath();ctx.fillStyle=col;ctx.fill();
   }
+  drawGuideBeacon();
   // screen-space overlays
   ctx.setTransform(DPR,0,0,DPR,0,0);
   if(G.burden>15){const a=Math.min(0.5,(G.burden-15)/100*0.6);const gr=ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*0.3,VW/2,VH/2,Math.max(VW,VH)*0.75);gr.addColorStop(0,'rgba(20,0,0,0)');gr.addColorStop(1,`rgba(30,4,4,${a})`);ctx.fillStyle=gr;ctx.fillRect(0,0,VW,VH);}
   const toScreen=(x,y,z)=>{const p=iso(x,y,z);return [VW/2+(p[0]-G.camX)*SC,VH/2+(p[1]-G.camY)*SC];};
   const onScreen=([x,y])=>x>-120&&x<VW+120&&y>-60&&y<VH+60;
+  if(G.guide&&!P.working&&running){const g=G.guide,[tx,ty]=toScreen(g.tx,g.ty,0),[px,py]=toScreen(P.x,P.y,0.9);
+    const m=50,mk=toScreen(g.tx,g.ty,2.9),under=(x,y)=>['tr','tl'].some(id=>{const el=document.getElementById(id);if(!el||el.hidden)return false;const r=el.getBoundingClientRect();return x>r.left-12&&x<r.right+12&&y>r.top-12&&y<r.bottom+12;});
+    const off=tx<m||tx>VW-m||ty<m+40||ty>VH-m||(under(tx,ty)&&under(mk[0],mk[1]));
+    if(off&&g.len>2){const ang=Math.atan2(ty-py,tx-px),R=clamp(Math.min(VW,VH)*0.2,70,140),ax=px+Math.cos(ang)*R,ay=py+Math.sin(ang)*R*0.8,a=0.7+0.3*Math.sin(G.time*4);
+      ctx.save();ctx.translate(ax,ay);ctx.rotate(ang);ctx.globalAlpha=a;ctx.fillStyle='#f0ae3c';ctx.strokeStyle='rgba(20,14,8,.7)';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(13,0);ctx.lineTo(-7,-9);ctx.lineTo(-3,0);ctx.lineTo(-7,9);ctx.closePath();ctx.stroke();ctx.fill();ctx.restore();
+      const lx=px+Math.cos(ang)*(R+30),ly=py+Math.sin(ang)*(R*0.8+22)+4;
+      ctx.font='600 12px "Archivo Narrow",sans-serif';ctx.textAlign='center';const txt=g.label+' · '+Math.round(g.len)+' m',tw=ctx.measureText(txt).width;
+      ctx.globalAlpha=0.85;ctx.fillStyle='rgba(8,10,14,.75)';ctx.fillRect(lx-tw/2-6,ly-12,tw+12,17);ctx.globalAlpha=1;ctx.fillStyle='#f0ae3c';ctx.fillText(txt,lx,ly);}
+    ctx.globalAlpha=1;}
   ctx.textAlign='center';
   for(const g of guards){
     if(g.state==='ko')continue;

@@ -10,6 +10,7 @@ Open `index.html` in a browser. There's nothing to build or install.
 
 ## A day in Grauhof
 - **Roll call (06:00):** choose today's work. Every job helps the oppressor. Some give you something; the heaviest gives you the most.
+- **Finding your work:** once you've chosen, faint amber footprints lead from Aren to the work place along a walkable route, and a marker floats over the spot (visible over roofs). When the spot is out of view, an arrow beside Aren points the way with the distance. Inside the East Block the footprints lead to the next stain. The guide disappears while you work and once the shift is done.
   | Job | Weight | What you gain |
   | --- | --- | --- |
   | Laundry | +2 | Nothing |
