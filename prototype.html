@@ -63,8 +63,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);margin:0;ov
   <div id="ttMode" style="display:flex;gap:4px"><button class="b on" id="mHead" type="button">Head</button><button class="b" id="mFull" type="button">Full figure</button></div>
   <div class="lbl">What to judge</div>
   <ul id="notes">
-    <li>Heads: smooth oval, tapered jaw, long nose, painted eyes; faceting only on the silhouette.</li>
-    <li>Shading: Gouraud in stepped palette ramps, one light from the upper left.</li>
+    <li>Heads: rounded sculpted ovals; softer noses; eyes set into the face under relaxed lids; calm resting expressions.</li>
+    <li>Shading: Gouraud in palette ramps (finer steps on skin), one light from the upper left; faceting stays on the silhouette.</li>
     <li>Sets: hand-painted, dithered textures; plinth, corner posts, eaves, sills, step.</li>
     <li>Interior: bunks, table, stove; roof cutaway and see-through front walls.</li>
   </ul>
@@ -97,6 +97,8 @@ const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
 const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
 const LIGHT=norm3([-0.25,0.55,0.8]),CAMV=norm3([1,1,32/30]);
 const shadeN=n=>0.38+0.7*Math.max(0,dot(n,LIGHT));
+// skin: a gentler wrap-around falloff so faces are modelled softly, not cut into hard bands
+const softN=n=>0.5+0.58*Math.pow((dot(n,LIGHT)+1)/2,1.35);
 const ENV_TOP=1,ENV_L=0.82,ENV_R=0.62;
 let NIGHT=false;
 
@@ -174,7 +176,7 @@ function line(p,q,col,w){ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q
 
 /* ================= polygon figures: Gouraud shading in stepped palette ramps ================= */
 const RAMP=16;
-function triG(p0,p1,p2,s0,s1,s2,base,alpha){
+function triG(p0,p1,p2,s0,s1,s2,base,RAMP=16){
   const x0=p0[0],y0=p0[1],x1=p1[0],y1=p1[1],x2=p2[0],y2=p2[1];
   const det=(x1-x0)*(y2-y0)-(x2-x0)*(y1-y0);
   ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.lineTo(x2,y2);ctx.closePath();
@@ -242,64 +244,79 @@ function emit(m,X,alpha){
     const na=NW[t[0]],nb=NW[t[1]],nc=NW[t[2]];
     if(n[0]*(na[0]+nb[0]+nc[0])+n[1]*(na[1]+nb[1]+nc[1])+n[2]*(na[2]+nb[2]+nc[2])<0)n=[-n[0],-n[1],-n[2]];
     if(dot(n,CAMV)<=0.0)continue;
-    const fs=shadeN(n);let s0=fs,s1=fs,s2=fs;
-    if(!m.flat){s0=0.8*shadeN(na)+0.2*fs;s1=0.8*shadeN(nb)+0.2*fs;s2=0.8*shadeN(nc)+0.2*fs;}
-    TQ.push({p0:S[t[0]],p1:S[t[1]],p2:S[t[2]],s0,s1,s2,c:t[3],d:(dot(a,CAMV)+dot(b,CAMV)+dot(c,CAMV))/3+m.bias,al:alpha});
+    const sh=m.soft?softN:shadeN,fs=sh(n);let s0=fs,s1=fs,s2=fs;
+    if(!m.flat){const w=m.soft?0.9:0.8;s0=w*sh(na)+(1-w)*fs;s1=w*sh(nb)+(1-w)*fs;s2=w*sh(nc)+(1-w)*fs;}
+    TQ.push({p0:S[t[0]],p1:S[t[1]],p2:S[t[2]],s0,s1,s2,c:t[3],d:(dot(a,CAMV)+dot(b,CAMV)+dot(c,CAMV))/3+m.bias,al:alpha,r:m.ramp||16});
   }
 }
-function flush(){TQ.sort((a,b)=>a.d-b.d);ctx.lineWidth=0.7;ctx.lineJoin='round';for(const q of TQ){if(q.al!=null)ctx.globalAlpha=q.al;triG(q.p0,q.p1,q.p2,q.s0,q.s1,q.s2,q.c);if(q.al!=null)ctx.globalAlpha=1;}TQ.length=0;}
+function flush(){TQ.sort((a,b)=>a.d-b.d);const m_=ctx.getTransform();ctx.lineWidth=0.9/(Math.hypot(m_.a,m_.b)||1);ctx.lineJoin='round';for(const q of TQ){if(q.al!=null)ctx.globalAlpha=q.al;triG(q.p0,q.p1,q.p2,q.s0,q.s1,q.s2,q.c,q.r);if(q.al!=null)ctx.globalAlpha=1;}TQ.length=0;}
 
 /* ================= the head: a sculpted oval, not a box ================= */
 const HEAD={rf:0.172,rs:0.152,ru:0.222};
-function headPt(th,ph){
+const FACE0={w:1,jaw:0.3,nose:1,eyes:1,lids:0.22,brow:0,browTilt:0,browW:0.022,age:0,lip:null,spacing:1};
+function headPt(th,ph,F=FACE0){
   const st=Math.sin(th),ct=Math.cos(th),cp=Math.cos(ph),sp=Math.sin(ph);
-  let f=HEAD.rf*st*cp,s=HEAD.rs*st*sp,u=HEAD.ru*ct;
+  let f=HEAD.rf*st*cp,s=HEAD.rs*F.w*st*sp,u=HEAD.ru*ct;
   const low=Math.max(0,-ct);
-  s*=1-0.3*Math.pow(low,1.3);                                   // jaw tapers to a modest chin
-  f*=cp>0?1-0.12*Math.pow(low,1.6)+0.05*low:1-0.22*low;          // chin forward, back of jaw tucked in
+  s*=1-F.jaw*Math.pow(low,1.3);                                  // jaw tapers to the chin (less for square jaws)
+  f*=cp>0?1-0.12*Math.pow(low,1.6)+0.05*low:1-0.22*low;
   if(cp<0)f*=1+0.1*Math.max(0,ct+0.3);                           // fuller cranium at the back
-  const brow=Math.exp(-Math.pow((ct-0.4)/0.12,2))*Math.max(0,cp-0.35);f+=0.016*brow;        // brow ridge
-  const cheek=Math.exp(-Math.pow((ct+0.05)/0.15,2))*Math.exp(-Math.pow((Math.abs(ph)-0.8)/0.3,2));s+=Math.sign(sp)*0.011*cheek;f+=0.006*cheek; // cheekbones
-  const sock=Math.exp(-Math.pow((ct-0.17)/0.1,2))*Math.exp(-Math.pow((Math.abs(ph)-0.42)/0.18,2));f-=0.003*sock; // soft eye sockets
+  const brow=Math.exp(-Math.pow((ct-0.4)/0.12,2))*Math.max(0,cp-0.35);f+=0.014*brow;
+  const cheek=Math.exp(-Math.pow((ct+0.05)/0.15,2))*Math.exp(-Math.pow((Math.abs(ph)-0.8)/0.3,2));s+=Math.sign(sp)*0.011*cheek;f+=0.006*cheek;
+  const sock=Math.exp(-Math.pow((ct-0.2)/0.1,2))*Math.exp(-Math.pow((Math.abs(ph)-0.38)/0.18,2));f-=0.004*sock;
   if(ct>0.6)u*=0.985;
+  if(ct<-0.6)u=-HEAD.ru*(0.6+(-ct-0.6)*0.45);                   // flatter underside of the jaw, no point under the chin
   return [f,s,u];
 }
-function headNrm(th,ph){const e=0.01,a=headPt(th,ph),b=headPt(th,ph+e),c=headPt(th+e,ph);let n=norm3(cross(sub(b,a),sub(c,a)));if(dot(n,a)<0)n=[-n[0],-n[1],-n[2]];return n;}
-const onHead=(th,ph,off)=>{const p=headPt(th,ph),n=headNrm(th,ph);return [p[0]+n[0]*off,p[1]+n[1]*off,p[2]+n[2]*off];};
-// a flat painted patch that follows the curve of the face
+function headNrm(th,ph,F){const e=0.01,a=headPt(th,ph,F),b=headPt(th,ph+e,F),c=headPt(th+e,ph,F);let n=norm3(cross(sub(b,a),sub(c,a)));if(dot(n,a)<0)n=[-n[0],-n[1],-n[2]];return n;}
+let CURF=FACE0;
+const onHead=(th,ph,off)=>{const p=headPt(th,ph,CURF),n=headNrm(th,ph,CURF);return [p[0]+n[0]*off,p[1]+n[1]*off,p[2]+n[2]*off];};
 function decal(ring,col,bias=0.05){const V=[],T=[];const c=ring.reduce((a,p)=>[a[0]+p[0]/ring.length,a[1]+p[1]/ring.length,a[2]+p[2]/ring.length],[0,0,0]);
   V.push(c,...ring);const n=norm3(c);for(let i=0;i<ring.length;i++)T.push([0,1+i,1+(i+1)%ring.length,col]);return {V,N:V.map(()=>n),T,flat:true,bias};}
 function eyePatch(thc,phc,dth,dph,off,col,bias,n=12){const r=[];for(let k=0;k<n;k++){const a=k/n*TAU;r.push(onHead(thc+Math.sin(a)*dth,phc+Math.cos(a)*dph,off));}return decal(r,col,bias);}
-function strip(pts,w,off,col,bias){ // pts: [[th,ph],...] along a line; w: half-thickness in theta
+function strip(pts,w,off,col,bias){
   const V=[],T=[];for(const [th,ph] of pts){V.push(onHead(th-w,ph,off),onHead(th+w,ph,off));}
   for(let i=0;i<pts.length-1;i++){const a=i*2;T.push([a,a+2,a+3,col],[a,a+3,a+1,col]);}
   const c=V.reduce((acc,p)=>[acc[0]+p[0]/V.length,acc[1]+p[1]/V.length,acc[2]+p[2]/V.length],[0,0,0]);return {V,N:V.map(()=>norm3(c)),T,flat:true,bias};}
+// a band between two curves over the face (used for relaxed upper lids)
+function band(top,bot,col,bias,off){const V=[],T=[];for(let k=0;k<top.length;k++){V.push(onHead(top[k][0],top[k][1],off),onHead(bot[k][0],bot[k][1],off));}
+  for(let k=0;k<top.length-1;k++){const a=k*2;T.push([a,a+2,a+3,col],[a,a+3,a+1,col]);}
+  const c=V.reduce((acc,p)=>[acc[0]+p[0]/V.length,acc[1]+p[1]/V.length,acc[2]+p[2]/V.length],[0,0,0]);return {V,N:V.map(()=>norm3(c)),T,flat:true,bias};}
 
 function buildHead(L){
+  const F=Object.assign({},FACE0,L.face||{});CURF=F;
   const skin=rgb(L.skin),hair=rgb(L.hair||'#2a2a2a'),parts=[];
-  const NU=14,NV=10;
-  parts.push(lattice(NU,NV,(i,j)=>headPt(j/NV*Math.PI,i/NU*TAU),skin,{center:[0,0,0]}));
-  // nose: long and prominent, sculpted as its own little form
-  const nb=headPt(1.47,0);
-  parts.push(ellip(8,6,0.07,0.036,0.072,[nb[0]-0.012,0,nb[2]-0.01],mix(skin,[150,70,50],0.06),{bias:0.03,warp:p=>[p[0]>0?p[0]*1.25:p[0]*0.4,p[1]*(1-0.35*Math.max(0,p[2]/0.072)),p[2]-0.42*Math.max(0,p[0])]}));
-  // ears
-  for(const sg of [1,-1])parts.push(ellip(8,5,0.045,0.017,0.062,[-0.012,sg*0.15,-0.012],mix(skin,[0,0,0],0.05)));
-  // painted features: big eyes, heavy upper lid, brows, small mouth
-  const mood=L.mood||'worn';
-  const white=[234,228,212],pupil=[28,22,18],lid=mix(skin,[40,24,16],0.55),browC=mix(hair,[0,0,0],0.15);
+  const NU=14,NV=10,soft={center:[0,0,0],soft:true};
+  parts.push(Object.assign(lattice(NU,NV,(i,j)=>headPt(j/NV*Math.PI,i/NU*TAU,F),skin,{center:[0,0,0]}),{soft:true,ramp:30}));
+  // nose: still the character's signature, but smaller and rounded
+  const nb=headPt(1.5,0,F),ns=F.nose;
+  parts.push(Object.assign(ellip(10,7,0.054*ns,0.034*ns,0.06*ns,[nb[0]-0.014,0,nb[2]-0.008],mix(skin,[150,70,50],0.05),{bias:0.03,warp:p=>[p[0]>0?p[0]*1.08:p[0]*0.45,p[1]*(1-0.28*Math.max(0,p[2]/(0.06*ns))),p[2]-0.28*Math.max(0,p[0])]}),{soft:true,ramp:30}));
+  for(const sg of [1,-1])parts.push(Object.assign(ellip(8,5,0.042,0.016,0.058,[-0.012,sg*0.15*F.w,-0.012],mix(skin,[0,0,0],0.05)),{soft:true,ramp:30}));
+  // eyes: set into the face, relaxed upper lids, pupils resting just under the lid
+  const te=1.38,pe=0.37*F.spacing,dt=0.105*F.eyes,dp=0.145*F.eyes;
+  const white=mix([232,226,210],skin,0.14),iris=L.iris?rgb(L.iris):[52,38,28],lidC=mix(skin,[70,44,32],0.16),lash=mix(skin,[26,18,14],0.62),browC=L.browC?rgb(L.browC):mix(hair,[0,0,0],0.1);
   for(const sg of [1,-1]){
-    parts.push(eyePatch(1.35,sg*0.37,0.15,0.165,0.004,white,0.05,14));
-    parts.push(eyePatch(1.37,sg*0.335,0.088,0.078,0.007,pupil,0.07,12));
-    parts.push(eyePatch(1.335,sg*0.31,0.024,0.024,0.009,[236,232,220],0.08,6));
-    const lidPts=[];for(let k=0;k<=8;k++){const a=Math.PI*(0.18+0.64*k/8);lidPts.push([1.35-Math.sin(a)*0.15,sg*0.37+Math.cos(a)*0.165]);}
-    parts.push(strip(lidPts,0.014,0.006,lid,0.075));
-    const inner=mood==='stern'?1.13:mood==='worn'?1.0:1.04,outer=mood==='stern'?1.04:1.08;
-    parts.push(strip([[inner,sg*0.1],[(inner+outer)/2-0.025,sg*0.34],[outer,sg*0.6]],0.024,0.006,browC,0.08));
+    const pc=sg*pe;
+    parts.push(eyePatch(te,pc,dt,dp,0.0012,white,0.05,14));
+    parts.push(eyePatch(te-0.012,pc-sg*0.02,dt*0.66,dp*0.43,0.002,iris,0.06,12));
+    parts.push(eyePatch(te-0.012,pc-sg*0.02,dt*0.32,dp*0.2,0.0026,[18,14,12],0.065,8));
+    const top=[],bot=[],line=[];
+    for(let k=0;k<=10;k++){const x=-1+2*k/10,h=Math.sqrt(Math.max(0,1-x*x));const ph=pc+x*dp*1.06;top.push([te-dt*1.12*h-0.004,ph]);const lt=te-dt*(1.12-2*F.lids)*h;bot.push([lt,ph]);line.push([lt,ph]);}
+    parts.push(band(top,bot,lidC,0.075,0.0024));
+    parts.push(strip(line,0.0075,0.0028,lash,0.08));
+    // brows: low, nearly level, resting
+    const bi=te-dt-0.075-F.brow+F.browTilt,bo=te-dt-0.07-F.brow;
+    parts.push(strip([[bi,sg*0.09*F.spacing],[(bi+bo)/2-0.012,sg*0.33*F.spacing],[bo,sg*0.58*F.spacing]],F.browW,0.004,browC,0.08));
   }
-  const mc=mood==='stern'?1.95:1.98;
-  parts.push(strip([[mc+0.03,-0.2],[mc,-0.08],[mc-0.005,0],[mc,0.08],[mc+0.03,0.2]],0.016,0.004,mix(skin,[90,30,30],0.45),0.06));
-  // hair as a shell over the skull
-  const shell=(keep,col=hair,scale=1.05)=>lattice(NU,NV,(i,j)=>{const p=headPt(j/NV*Math.PI,i/NU*TAU);return [p[0]*scale,p[1]*scale,p[2]*scale+0.004];},col,{center:[0,0,0],bias:0.025,keep:(i,j)=>keep((j+0.5)/NV*Math.PI,(i+0.5)/NU*TAU)});
+  // mouth: a calm, closed line
+  const mc=1.97,mw=0.17;
+  parts.push(strip([[mc+0.006,-mw],[mc,-mw*0.4],[mc+0.004,0],[mc,mw*0.4],[mc+0.006,mw]],0.0105,0.002,mix(skin,[90,34,30],0.4),0.06));
+  if(F.lip)parts.push(strip([[mc+0.03,-mw*0.6],[mc+0.034,0],[mc+0.03,mw*0.6]],0.012,0.0016,mix(skin,rgb(F.lip),0.35),0.055));
+  // age: forehead lines and the folds from nose to mouth
+  if(F.age>0){const ac=mix(skin,[40,24,18],0.14+0.08*F.age);
+    for(const sg of [1,-1])parts.push(strip([[1.66,sg*0.15],[1.8,sg*0.19],[1.93,sg*0.21]],0.006,0.002,ac,0.055));
+    if(F.age>=1){parts.push(strip([[0.9,-0.28],[0.88,0],[0.9,0.28]],0.006,0.002,ac,0.055));parts.push(strip([[0.98,-0.24],[0.965,0],[0.98,0.24]],0.006,0.002,ac,0.055));}}
+  const shell=(keep,col=hair,scale=1.05)=>lattice(NU,NV,(i,j)=>{const p=headPt(j/NV*Math.PI,i/NU*TAU,F);return [p[0]*scale,p[1]*scale,p[2]*scale+0.004];},col,{center:[0,0,0],bias:0.025,keep:(i,j)=>keep((j+0.5)/NV*Math.PI,(i+0.5)/NU*TAU)});
   const C=Math.cos;
   switch(L.hairStyle){
     case 'tuft':parts.push(shell((th,ph)=>th<1.15||(C(ph)<0.15&&th<1.95)||(C(ph)<0.55&&th<1.5)));
@@ -309,15 +326,16 @@ function buildHead(L){
     case 'cap':parts.push(shell((th,ph)=>C(ph)<-0.15&&th>1.0&&th<1.75));break;
   }
   if(L.beard)parts.push(shell((th,ph)=>th>1.6&&C(ph)>-0.3&&!(th<1.95&&Math.abs(Math.sin(ph))<0.18),hair,1.04));
-  if(L.glasses){const g=[196,196,186];for(const sg of [1,-1]){const ring=[];for(let k=0;k<=12;k++){const a=k/12*TAU;ring.push([1.41+Math.sin(a)*0.17,sg*0.4+Math.cos(a)*0.22]);}parts.push(strip(ring,0.012,0.012,g,0.09));}
-    parts.push(strip([[1.36,-0.18],[1.34,0],[1.36,0.18]],0.012,0.014,g,0.09));}
+  if(L.glasses){const g=[188,188,178];for(const sg of [1,-1]){const ring=[];for(let k=0;k<=12;k++){const a=k/12*TAU;ring.push([te+Math.sin(a)*0.15,sg*pe+Math.cos(a)*0.2]);}parts.push(strip(ring,0.01,0.012,g,0.09));}
+    parts.push(strip([[te-0.05,-0.17],[te-0.07,0],[te-0.05,0.17]],0.01,0.014,g,0.09));}
   if(L.hairStyle==='cap'){
-    const capC=[46,52,40],band=[132,40,32];
-    parts.push(loft([{u:0.075,rf:0.168,rs:0.15,df:-0.008},{u:0.13,rf:0.172,rs:0.155,df:-0.006},{u:0.19,rf:0.19,rs:0.168,df:0.008},{u:0.235,rf:0.196,rs:0.172,df:0.012},{u:0.25,rf:0.186,rs:0.164,df:0.012}],14,(i,j)=>j===0?band:capC,{capT:true,capTd:0.008,e:2.1}));
-    const vis=[];for(let k=0;k<=10;k++){const a=-1.15+2.3*k/10;vis.push([0.04+Math.cos(a)*0.2,Math.sin(a)*0.14,0.12-0.035*Math.cos(a)]);}
+    const capC=[46,52,40],band_=[132,40,32];
+    parts.push(loft([{u:0.075,rf:0.168,rs:0.15*F.w,df:-0.008},{u:0.13,rf:0.172,rs:0.155*F.w,df:-0.006},{u:0.19,rf:0.19,rs:0.168*F.w,df:0.008},{u:0.235,rf:0.196,rs:0.172*F.w,df:0.012},{u:0.25,rf:0.186,rs:0.164*F.w,df:0.012}],14,(i,j)=>j===0?band_:capC,{capT:true,capTd:0.008,e:2.1}));
+    const vis=[];for(let k=0;k<=10;k++){const a=-1.15+2.3*k/10;vis.push([0.04+Math.cos(a)*0.2,Math.sin(a)*0.14*F.w,0.12-0.035*Math.cos(a)]);}
     const V=[[0.06,0,0.125],...vis];const T=[];for(let k=0;k<10;k++)T.push([0,1+k,2+k,[40,44,36]]);parts.push({V,N:V.map(()=>[0.3,0,1]),T,flat:true,bias:0.02});
     parts.push(ellip(6,4,0.02,0.02,0.02,[0.178,0,0.1],[190,160,80]));
   }
+  CURF=FACE0;
   return parts;
 }
 function buildFigure(L){
@@ -328,10 +346,10 @@ function buildFigure(L){
   if(L.guard){P.pelvis.push(loft([{u:0.13,rf:0.125,rs:0.16},{u:-0.08,rf:0.155,rs:0.195},{u:-0.38,rf:0.19,rs:0.23,df:-0.01}],12,shirt,{e:2.3}));
     P.pelvis.push(loft([{u:0.05,rf:0.13,rs:0.165},{u:0.1,rf:0.13,rs:0.165}],12,[32,30,26],{e:2.4}));P.pelvis.push(boxM(0.125,0.15,-0.03,0.03,0.055,0.095,[190,160,80]));}
   P.torso.push(loft([{u:0.08,rf:0.108,rs:0.138},{u:0.22,rf:0.113,rs:0.146},{u:0.36,rf:0.12,rs:0.165},{u:0.46,rf:0.12,rs:0.18},{u:0.52,rf:0.104,rs:0.164},{u:0.565,rf:0.07,rs:0.1},{u:0.59,rf:0.05,rs:0.055}],16,(i,j)=>j>=5?shirt:st(i),{e:2.6,capT:true,capTd:0.01}));
-  P.torso.push(loft([{u:0.56,rf:0.04,rs:0.04},{u:0.66,rf:0.038,rs:0.038}],8,skin));
+  P.torso.push(Object.assign(loft([{u:0.57,rf:0.046,rs:0.046},{u:0.66,rf:0.043,rs:0.043}],10,mix(skin,[40,24,18],0.12)),{soft:true,ramp:30,bias:-0.04}));
   if(L.guard)for(const u of [0.2,0.3,0.4])P.torso.push(ellip(6,4,0.012,0.014,0.014,[0.12,0,u],[190,160,80]));
   if(L.guard)P.torso.push(loft([{u:0.5,rf:0.09,rs:0.11},{u:0.575,rf:0.065,rs:0.075}],12,mix(shirt,[0,0,0],.25),{e:2.2}));
-  if(L.scarf){const sc=rgb(L.scarf);P.torso.push(loft([{u:0.5,rf:0.094,rs:0.118},{u:0.585,rf:0.068,rs:0.08}],12,sc,{e:2.2}));P.torso.push(ellip(6,4,0.035,0.04,0.035,[0.1,-0.03,0.5],sc));}
+  if(L.scarf){const sc=rgb(L.scarf);P.torso.push(Object.assign(loft([{u:0.53,rf:0.11,rs:0.16},{u:0.565,rf:0.092,rs:0.118},{u:0.6,rf:0.07,rs:0.074}],12,sc,{e:2.4}),{bias:0.01}));P.torso.push(ellip(6,4,0.03,0.034,0.03,[0.1,-0.03,0.53],sc));}
   const arm=(k)=>{P['ua'+k].push(loft([{u:0.03,rf:0.044,rs:0.044},{u:0,rf:0.056,rs:0.056},{u:-0.13,rf:0.05,rs:0.05},{u:-0.26,rf:0.046,rs:0.046}],8,shirt,{capT:true,capB:true}));
     P['la'+k].push(loft([{u:0,rf:0.047,rs:0.047},{u:-0.12,rf:0.044,rs:0.044},{u:-0.22,rf:0.04,rs:0.04}],8,shirt,{capB:true}));
     P['la'+k].push(ellip(8,5,0.056,0.042,0.072,[0.005,0,-0.29],skin),ellip(6,4,0.024,0.022,0.035,[0.035,k==='L'?0.034:-0.034,-0.255],skin));};
@@ -536,12 +554,12 @@ function wires(x,y){
 
 /* ================= people on the set ================= */
 const LOOK={
-  aren:{name:'Aren',skin:'#e2b590',shirt:'#6d7e95',stripe:'#97a6b9',pants:'#4c586b',hair:'#3a2819',hairStyle:'tuft',mood:'worn'},
-  mira:{name:'Mira',skin:'#e8bf9b',shirt:'#6d7e95',stripe:'#97a6b9',pants:'#4c586b',hair:'#191210',hairStyle:'bun',scarf:'#a8352b',scale:0.95,mood:'worried'},
-  tomas:{name:'Tomas',skin:'#d9ab86',shirt:'#6d7e95',stripe:'#97a6b9',pants:'#4c586b',hair:'#cfcbc1',hairStyle:'grey',glasses:true,scale:0.97,mood:'worn'},
-  bram:{name:'Bram',skin:'#a8754f',shirt:'#6d7e95',stripe:'#97a6b9',pants:'#4c586b',hair:'#33241a',hairStyle:'bald',beard:true,scale:1.12,mood:'worn'},
-  guard:{name:'Guard',skin:'#d7a77f',shirt:'#4b5537',pants:'#262a21',hair:'#2a2a2a',hairStyle:'cap',guard:true,scale:1.05,mood:'stern'},
-  hanne:{name:'Hanne',skin:'#c99a72',shirt:'#66758a',stripe:'#8f9db0',pants:'#4c586b',hair:'#5a3a22',hairStyle:'bun',band:'#ece6d6',scale:0.93,mood:'worried'}
+  aren:{name:'Aren',skin:'#e2b590',shirt:'#6d7e95',stripe:'#97a6b9',pants:'#4c586b',hair:'#3a2819',hairStyle:'tuft',iris:'#4a5a66',face:{lids:0.22,brow:0.005}},
+  mira:{name:'Mira',skin:'#e8bf9b',shirt:'#6d7e95',stripe:'#97a6b9',pants:'#4c586b',hair:'#191210',hairStyle:'bun',scarf:'#a8352b',scale:0.95,iris:'#5a3a24',face:{w:0.95,jaw:0.38,nose:0.8,eyes:1.06,lids:0.17,browW:0.015,lip:'#b8665c'}},
+  tomas:{name:'Tomas',skin:'#d9ab86',shirt:'#6d7e95',stripe:'#97a6b9',pants:'#4c586b',hair:'#cfcbc1',hairStyle:'grey',glasses:true,scale:0.97,browC:'#b8b4aa',face:{nose:1.05,eyes:0.94,lids:0.32,age:1,brow:-0.012}},
+  bram:{name:'Bram',skin:'#a8754f',shirt:'#6d7e95',stripe:'#97a6b9',pants:'#4c586b',hair:'#33241a',hairStyle:'bald',beard:true,scale:1.12,face:{w:1.1,jaw:0.18,nose:1.12,eyes:0.92,lids:0.26,browW:0.028,brow:-0.008}},
+  guard:{name:'Guard',skin:'#d7a77f',shirt:'#4b5537',pants:'#262a21',hair:'#2a2a2a',hairStyle:'cap',guard:true,scale:1.05,iris:'#3a4650',face:{w:1.04,jaw:0.14,eyes:0.92,lids:0.27,browTilt:0.02,brow:-0.01,browW:0.026}},
+  hanne:{name:'Hanne',skin:'#c99a72',shirt:'#66758a',stripe:'#8f9db0',pants:'#4c586b',hair:'#5a3a22',hairStyle:'bun',band:'#ece6d6',scale:0.93,face:{w:0.97,jaw:0.34,nose:0.9,lids:0.25,age:0.5,lip:'#9c5a50'}}
 };
 const P={x:7.5,y:13.6,dir:-Math.PI*0.75,look:LOOK.aren,anim:0,moving:false};
 const people=[P,
@@ -607,7 +625,7 @@ function render(dt){
 const dk=document.createElement('canvas');
 /* ---------- turntable ---------- */
 const tt=document.getElementById('tt'),ttx=tt.getContext('2d');
-const TT_LIST=['aren','mira','tomas','bram','guard'];let ttSel='aren',ttHead=true;const ttFig={x:0,y:0,dir:0,look:LOOK.aren};
+const TT_LIST=['aren','mira','tomas','bram','hanne','guard'];let ttSel='aren',ttHead=true;const ttFig={x:0,y:0,dir:0,look:LOOK.aren};
 function renderTT(dt){
   const saved=ctx;ctx=ttx;const w=tt.width,h=tt.height,sc=w/120;
   ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,w,h);ctx.imageSmoothingEnabled=false;
