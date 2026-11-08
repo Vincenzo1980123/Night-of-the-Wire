@@ -1765,6 +1765,7 @@ function buildHead(L,lo){
   if(L.beard)parts.push(shell((th,ph)=>th>1.6&&C(ph)>-0.3&&!(th<1.95&&Math.abs(Math.sin(ph))<0.18),hair,1.04));
   if(L.goatee){parts.push(shell((th,ph)=>th>1.86&&C(ph)>0.72,hair,1.035));
     parts.push(strip([[mc-0.04,-0.2],[mc-0.055,-0.09],[mc-0.06,0],[mc-0.055,0.09],[mc-0.04,0.2]],0.016,0.004,hair,0.07));}
+  if(L.glasses&&lo){const g=[188,188,178];for(const sg of [1,-1]){const ring=[];for(let k=0;k<=6;k++){const a=k/6*TAU;ring.push([te+Math.sin(a)*0.15,sg*0.37+Math.cos(a)*0.2]);}parts.push(strip(ring,0.012,0.012,g,0.09));}}
   if(L.glasses&&!lo){const g=[188,188,178];for(const sg of [1,-1]){const ring=[];for(let k=0;k<=12;k++){const a=k/12*TAU;ring.push([te+Math.sin(a)*0.15,sg*pe+Math.cos(a)*0.2]);}parts.push(strip(ring,0.01,0.012,g,0.09));}parts.push(strip([[te-0.05,-0.17],[te-0.07,0],[te-0.05,0.17]],0.01,0.014,g,0.09));}
   if(L.hairStyle==='cap'){const capC=[46,52,40],band_=[132,40,32];
     parts.push(loft([{u:0.075,rf:0.168,rs:0.15*F.w,df:-0.008},{u:0.13,rf:0.172,rs:0.155*F.w,df:-0.006},{u:0.19,rf:0.19,rs:0.168*F.w,df:0.008},{u:0.235,rf:0.196,rs:0.172*F.w,df:0.012},{u:0.25,rf:0.186,rs:0.164*F.w,df:0.012}],lo?8:14,(i,j)=>j===0?band_:capC,{capT:true,capTd:0.008,e:2.1}));
@@ -1848,9 +1849,21 @@ function drawPerson(e,alpha){
   const arm=(sd,pt,rl,el)=>{const a=cx(torso,cx(Tr(0,sd*0.2,0.5),cx(Ro(Rr(sd*rl)),Ro(Rp(pt)))));return [a,cx(a,cx(Tr(0,0,-0.26),Ro(Rp(el))))];};
   const leg=(sd,h,kn)=>{const a=cx(hip,cx(Tr(0,sd*0.085,0),Ro(Rp(h))));return [a,cx(a,cx(Tr(0,0,-0.32),Ro(Rp(-kn))))];};
   const [uaL,laL]=arm(1,po.shL,po.rollL,po.elbL),[uaR,laR]=arm(-1,po.shR,po.rollR,po.elbR),[thL,snL]=leg(1,po.hipL,po.kneeL),[thR,snR]=leg(-1,po.hipR,po.kneeR);
-  const M=e[key],E=(list,X)=>{for(const m of list)emit(m,X,alpha,lo===1);};
-  E(M.pelvis,hip);E(M.torso,torso);E(M.head,head);E(M.uaL,uaL);E(M.laL,laL);E(M.uaR,uaR);E(M.laR,laR);E(M.thL,thL);E(M.snL,snL);E(M.thR,thR);E(M.snR,snR);
-  flush();
+  const M=e[key],body=al=>{const E=(list,X)=>{for(const m of list)emit(m,X,al,lo===1);};
+    E(M.pelvis,hip);E(M.torso,torso);E(M.head,head);E(M.uaL,uaL);E(M.laL,laL);E(M.uaR,uaR);E(M.laR,laR);E(M.thL,thL);E(M.snL,snL);E(M.thR,thR);E(M.snR,snR);flush();};
+  // someone standing still is painted once into a small sprite and reused until they move or change posture
+  const RS=Math.min(4,DPR*SC),q=v=>Math.round(v*40);
+  let pk=lo+'|'+RS+'|'+q(e.x)+','+q(e.y)+','+Math.round(e.dir*50);for(const kk in po)pk+=','+q(po[kk]);
+  if(pk===e._pk){e._pkN++;}else{e._pk=pk;e._pkN=0;}
+  if(e._pkN<2){body(alpha);}
+  else{
+    if(!e._spr||e._spr.k!==pk){const c0=iso(e.x,e.y),bx=c0[0]-52,by=c0[1]-82,w=Math.ceil(104*RS),h=Math.ceil(104*RS);
+      let c=e._spr&&e._spr.c;if(!c||c.width!==w||c.height!==h){c=document.createElement('canvas');c.width=w;c.height=h;}
+      const g=c.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,w,h);g.setTransform(RS,0,0,RS,-bx*RS,-by*RS);
+      const saved=ctx;ctx=g;try{body(undefined);}finally{ctx=saved;}
+      e._spr={c,k:pk,x:bx,y:by,w:w/RS,h:h/RS};}
+    const sp=e._spr,a0=ctx.globalAlpha;if(alpha!=null)ctx.globalAlpha=a0*alpha;ctx.drawImage(sp.c,sp.x,sp.y,sp.w,sp.h);ctx.globalAlpha=a0;
+  }
   if(e.state==='ko'){const p=iso(e.x,e.y,0.6);ctx.fillStyle='rgba(207,214,255,.8)';ctx.font='11px "Special Elite",monospace';ctx.fillText('z'.repeat(1+((G.time*2|0)%3)),p[0]+6,p[1]-6);}
 }
 let DOGMESH=null;

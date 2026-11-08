@@ -4,7 +4,7 @@ An isometric stealth adventure in a single HTML file, playable on desktop and on
 
 Open `index.html` in a browser. There's nothing to build or install.
 
-`prototype.html` is a standalone art-direction prototype: a yard, a barrack you can walk into, and a character turntable. It's for approving the next visual pass before it goes into the game.
+`prototype.html` is the standalone art-direction prototype (a yard, a barrack you can walk into, a character turntable) that the game's current look was approved from.
 
 > Content note: the game depicts a fictional extermination camp, forced labour and the line of people walked into the East Block. Nothing graphic is shown, but it is meant to be heavy.
 
@@ -29,8 +29,9 @@ Open `index.html` in a browser. There's nothing to build or install.
 
 ## Visual style
 The look is mid-1990s European isometric 3D adventure games: polygonal characters walking through a hand-painted miniature world. All designs are original.
-- **Characters:** real-time low-poly 3D figures with flat, faceted shading from a single light direction. They have toy-like proportions: oval heads, prominent noses, large simple eyes, oversized hands and boots. Their posture shows their state: prisoners stoop, the people in the line walk with their heads bowed, and guards stand upright. Poses blend smoothly between standing, walking, running, sneaking, sitting, kneeling to scrub and lying down.
-- **Environment:** procedurally generated low-resolution textures (concrete block, weathered planks, tar paper, corrugated iron, terracotta, brick, dirt, gravel), thick walls with crisp edges, painted windows and doors, cast shadows and contact shadows at the base of walls.
+- **Characters:** real-time low-poly 3D figures with soft Gouraud shading in stepped palette ramps, lit from a single direction. Heads are sculpted ovals with individual faces: nose, set-in eyes with lids, brows, mouth, ears, age lines, hair, beards and glasses vary per person, and every prisoner and guard gets a slightly different face. Aren is bald with a goatee; Bram is heavier, darker and fully bearded; Tomas is grey with glasses; Mira wears her hair in a bun and a red scarf. Posture shows state: prisoners stoop, the people in the line walk with their heads bowed, guards stand upright. Poses blend smoothly between standing, walking, running, sneaking, sitting, kneeling to scrub and lying down.
+- **Detail levels:** Aren and the two people nearest him get full faces; everyone further away uses a lighter version of the same model. Anyone standing still is painted once and reused until they move.
+- **Environment:** procedurally generated, dithered 64-texel textures (concrete block with a plinth, weathered planks, tar paper, corrugated iron, terracotta, brick, dirt with pebbles, gravel, grass), with construction details: corner posts, window sills, fascia and barge boards, ridge caps, door frames and steps, double bunks. The camp sits on a diorama base, with world-scale ground variation, puddles, cast shadows and contact shadows at the base of walls.
 - **Roofs:** they lift away when you step inside a building, so you see the interior in cutaway. Anything standing between the camera and you turns see-through.
 - **Performance:** the static art for each tile is rendered once into cached sprites, the way old isometric engines pre-rendered their bricks. Only animated details are drawn live: wire shimmer, smoke, steam and the generator light.
 
