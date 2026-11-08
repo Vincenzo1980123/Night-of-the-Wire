@@ -1,22 +1,25 @@
 # Night of the Wire
 
-An isometric stealth-adventure in a single HTML file. It's night in a fictional prison camp run by "the Directorate". You play Aren, and you need to find three other prisoners, Mira, Tomas and Bram. Each of them, controlled by the game's AI, can do one thing you can't. Then all four of you have to get through the wire.
+An isometric stealth adventure in a single HTML file. It's night in Grauhof, a fictional camp run by "the Directorate". You play Aren, and you need to find three other prisoners, Mira, Tomas and Bram. Each of them, controlled by the game's AI, can do one thing you can't. Then all four of you have to get through the wire.
 
-Open `index.html` in any modern browser. There's nothing to build or install.
+Open `index.html` in any modern browser. It also runs on iPhone and Android, with a touch stick and buttons.
 
 ## Controls
-| Key | Action |
-| --- | --- |
-| WASD / Arrows | Move |
-| 1 · 2 · 3 (Shift) | Normal · Sneak · Sprint |
-| E / Space | Act: talk, take, open, knock out a guard from behind |
-| Q | Tell your whole group to wait or follow |
-| P / Esc | Pause |
+| Key | Touch | Action |
+| --- | --- | --- |
+| WASD / Arrows | Left thumb stick | Move (tilt the stick gently to creep) |
+| 1 · 2 · 3 (Shift) | WALK / SNEAK / SPRINT button | Change stance |
+| E / Space | ACT | Talk, whisper, take, open, knock out a guard from behind |
+| Q | GROUP | Tell your whole group to wait or follow |
+| P / Esc, M | II | Pause, sound on/off |
 
-On touch devices you get an on-screen stick plus ACT, MODE and GROUP buttons.
+## The camp
+- **Barracks are safe.** Guards and searchlights can't see inside, and the people there talk out loud.
+- **The yard:** if a guard sees you, he orders you back inside. If you're still in his sight five seconds later, he chases you.
+- **Restricted areas:** the wire, the gate, the workshop, the office and the power house. Being seen in any of them gets you chased quickly.
+- **The East compound** is forbidden, and guards there react almost at once. Every so often a slow line of prisoners is marched under guard through the East Block door. None of them come back out.
+- **Random alarms:** a siren goes off now and then, and until it stops guards treat anyone outside as a runner.
+- **People:** you can talk to the prisoners in the barracks and the yard. Two trustees, Kessler and Rusk, are prisoners who work for the guards: they're hostile, and Rusk reports anyone he sees outside. You can also talk to guards, but it only provokes abuse and draws their attention.
 
-## How it plays
-- **Companions:** they follow you and copy your stance, so they crouch when you sneak. They warn you when a guard is looking their way. Guards can catch them, and then they're locked in the cells next to the guard office until you let them out.
-- **Guards:** each one patrols with a vision cone that walls block. Suspicion builds up before they start chasing you. When a chase is lost they search the area, and then they go back to their route. Sprinting makes noise that guards can hear.
-- **Light:** lamps and searchlights let guards see you from much further away. Once Tomas has killed the generator, the whole camp goes dark and the outer fence is no longer electrified.
-- **Objectives:** Bram clears the workshop door so you can get the wire cutters. Mira picks the lock on the guard office so you can take the keycard. Tomas cuts the power. Then you open the inner gate, cut through the fence and get into the forest.
+## Sound
+The camp itself is silent. Prisoners whisper, which you hear as soft, breathy noise. Guards and trustees shout, which you hear as harsh, loud barks. The only other sound is the siren.
