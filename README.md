@@ -9,6 +9,8 @@ Open `index.html` in a browser. There's nothing to build or install.
 > Content note: the game depicts a fictional extermination camp, forced labour and the line of people walked into the East Block. Nothing graphic is shown, but it is meant to be heavy.
 
 ## A day in Grauhof
+A working day lasts about 8½ minutes (06:00 to 18:00), exactly as long as the loudspeaker programme, so every record plays to the end. Nights last 3½ minutes.
+
 - **Roll call (06:00):** choose today's work. Every job helps the oppressor. Some give you something; the heaviest gives you the most.
 - **Finding your work:** once you've chosen, faint amber footprints lead from Aren to the work place along a walkable route, and a marker floats over the spot (visible over roofs). When the spot is out of view, an arrow beside Aren points the way with the distance. Inside the East Block the footprints lead to the next stain. The guide disappears while you work and once the shift is done.
   | Job | Weight | What you gain |

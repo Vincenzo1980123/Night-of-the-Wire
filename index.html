@@ -276,7 +276,7 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 }
 /* ================= constants & map ================= */
 const TW=64, TH=32, HU=30;
-const DAY_LEN=150, NIGHT_LEN=210, LAST_DAY=5;
+const DAY_LEN=520, NIGHT_LEN=210, LAST_DAY=5;
 const hash=(x,y)=>{const s=Math.sin(x*127.1+y*311.7)*43758.5453;return s-Math.floor(s);};
 const dots=n=>'.'.repeat(n);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -577,7 +577,7 @@ function chooseJob(id){
   computeFloor();updateHud(true);
 }
 function finishShift(){
-  G.shiftDone=true;G.ff=6;P.working=false;P.crouch=P.mode===1;
+  G.shiftDone=true;G.ff=1;P.working=false;P.crouch=P.mode===1;
   const J=JOBS[G.job];
   if(G.job!=='east')G.burden=Math.min(100,G.burden+J.weight);
   switch(G.job){
@@ -590,7 +590,7 @@ function finishShift(){
       showDialog('Detail prisoner',"You did your share. Here's what the detail knows: the breaker for the camp lights is in the power house, third lever. Tonight they'll let you walk. Use it.",8,'whisper');
       break;
   }
-  queueDialog('hint',"Work's done. The rest of the day drags past. Stay out of trouble until the evening bell.",4);
+  queueDialog('hint',"Work's done. The rest of the day is yours until the evening bell: scout, dig, steal, or stay out of sight.",5);
   updateHud(true);
 }
 function updateWork(dt){
@@ -1160,11 +1160,12 @@ function* paGen(sr){
 /* ---- real recordings (public domain), fetched in the background; synthesised versions are the fallback ---- */
 // only files that exist are listed; more slots (march2, song, night, siren, fire, dog1-3) are wired below and fall back to synthesis
 const REC_FILES={march1:'audio/alte-kameraden.mp3',march2:'audio/defilier-marsch.mp3'};
-const REC={};
+const REC={},REC_WAIT={n:0,t0:0};
 function loadRecordings(){
-  if(!AC||loadRecordings.done)return;loadRecordings.done=true;
+  if(!AC||loadRecordings.done||location.protocol==='file:')return;loadRecordings.done=true;
+  REC_WAIT.n=Object.keys(REC_FILES).length;REC_WAIT.t0=AC.currentTime;
   for(const [k,u] of Object.entries(REC_FILES))fetch(u).then(r=>r.ok?r.arrayBuffer():Promise.reject(r.status))
-    .then(b=>new Promise((res,rej)=>AC.decodeAudioData(b,res,rej))).then(buf=>{REC[k]=buf;}).catch(()=>{});
+    .then(b=>new Promise((res,rej)=>AC.decodeAudioData(b,res,rej))).then(buf=>{REC[k]=buf;}).catch(()=>{}).finally(()=>{REC_WAIT.n--;});
 }
 let PAPROG=null,PAG=null,PALP=null,SPK=null,PASRC=null,PA={i:0,next:0};
 function speakerChain(){
@@ -1187,11 +1188,11 @@ function preparePA(){
   setTimeout(step_,1500);
 }
 // the day's programme: chime, a march, the ballad, another march... real records whenever they're available
-function paPlaylist(){const P_=PAPROG;return [[P_.chime,0.8],[REC.march1||P_.march,4],[REC.song||P_.ballad,6],[P_.chime,0.8],[REC.march2||REC.march1||P_.march,4],[REC.song||P_.ballad,8]];}
+function paPlaylist(){const P_=PAPROG;return [[P_.chime,0.8],[REC.march1||P_.march,4],[REC.song||P_.ballad,6],[P_.chime,0.8],[REC.march2||REC.march1||P_.march,30]];}
 function updatePA(){
   if(!AC||!PAG||!PAPROG||PAPROG==='busy')return;const t=AC.currentTime,day=G.phase==='day'&&running&&!paused&&!P.inLine;
   if(G.phase!=='day'){if(PASRC){const s_=PASRC;PASRC=null;PAG.gain.setTargetAtTime(0,t,0.4);try{s_.stop(t+1.5);}catch(e){}}PA.i=0;PA.next=0;return;}
-  if(!PASRC&&t>=PA.next){const list=paPlaylist(),[b,gap]=list[PA.i%list.length];PA.i++;
+  if(!PASRC&&t>=PA.next&&!(PA.i%5!==0&&REC_WAIT.n>0&&t<REC_WAIT.t0+12)){const list=paPlaylist(),[b,gap]=list[PA.i%list.length];PA.i++;
     const src=AC.createBufferSource();src.buffer=b;src.connect(SPK);src.start();PASRC=src;
     src.onended=()=>{if(PASRC===src){PASRC=null;PA.next=AC.currentTime+gap;}};}
   let d=99;for(const L of LAMPS){const k=Math.hypot(L.x-P.x,L.y-P.y);if(k<d)d=k;}
@@ -1365,7 +1366,7 @@ function updatePlayer(dt){
   P.crouch=m===1||(P.working&&G.job==='east')||P.digging;P.sprinting=m===2;
   if(l>0.05){
     if(P.busy)P.busy=null;
-    if(P.sleeping){P.sleeping=false;G.ff=G.shiftDone&&G.phase==='day'?6:1;}
+    if(P.sleeping){P.sleeping=false;G.ff=1;}
     wx/=l;wy/=l;
     const sp=[2.5,1.25,4.2][m]*(touchVec.on?Math.max(0.45,mag):1);
     const moved=moveE(P,wx*sp,wy*sp,dt,walkP);
