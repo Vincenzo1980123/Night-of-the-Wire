@@ -1,25 +1,38 @@
 # Night of the Wire
 
-An isometric stealth adventure in a single HTML file. It's night in Grauhof, a fictional camp run by "the Directorate". You play Aren, and you need to find three other prisoners, Mira, Tomas and Bram. Each of them, controlled by the game's AI, can do one thing you can't. Then all four of you have to get through the wire.
+An isometric stealth adventure in a single HTML file, playable on desktop and on phones (iPhone included). It's set in Grauhof, a fictional camp run by "the Directorate". By day you do forced labour that helps the people who keep you there. By night you try to get yourself and three friends, Mira, Tomas and Bram, through the wire.
 
-Open `index.html` in any modern browser. It also runs on iPhone and Android, with a touch stick and buttons.
+Open `index.html` in a browser. There's nothing to build or install.
+
+> Content note: the game depicts a fictional extermination camp, forced labour and the line of people walked into the East Block. Nothing graphic is shown, but it is meant to be heavy.
+
+## A day in Grauhof
+- **Roll call (06:00):** choose today's work. Every job helps the oppressor. Some give you something; the heaviest gives you the most.
+  | Job | Weight | What you gain |
+  | --- | --- | --- |
+  | Laundry | +2 | Nothing |
+  | Kitchen yard | +6 | Two scraps of meat to keep a guard dog busy |
+  | Workshop | +10 | The wire cutters |
+  | Guard office | +18 | The spare gate keycard |
+  | **Special detail: the East Block** | **+35** | Tonight guards let you through and you may enter the East compound; the dogs learn your scent for good; you learn the breaker that kills the camp lights |
+- **Day:** go to your job and hold Act to work. There are no searchlights, but there's nowhere to hide either. If you wander off, guards order you back, and after five seconds they beat you back to your post.
+- **Night (22:00–05:30):** searchlights, lamps, guards and dogs. This is when the escape can happen. You must be back in a barrack by dawn roll call, or it counts as a failed attempt. You can also sleep through the night on your bunk.
+- **Weight:** what the work does to you. High Weight shortens your breath, slows your hands and brings intrusive thoughts. Talking to people in the barracks at night eases it.
+
+## How it ends
+- **Escape:** cut the power, open the inner gate, cut the outer fence, and reach the forest with whoever is still with you.
+- **Caught:** the first two times you're thrown back in your barrack. The third time, you are put in the line to the East Block. You can't leave the line, and the ending can't be avoided.
+- **Selection:** after the fifth night, Block A is selected. If you've only worked and never escaped, you end up in the line anyway. Five full days played without skipping take about 30 minutes; finishing work early or sleeping through a night makes the time pass faster.
+- **Friends:** friends still in the cells at dawn are taken east and are gone for good.
 
 ## Controls
 | Key | Touch | Action |
 | --- | --- | --- |
-| WASD / Arrows | Left thumb stick | Move (tilt the stick gently to creep) |
-| 1 · 2 · 3 (Shift) | WALK / SNEAK / SPRINT button | Change stance |
-| E / Space | ACT | Talk, whisper, take, open, knock out a guard from behind |
-| Q | GROUP | Tell your whole group to wait or follow |
+| WASD / Arrows | Thumb stick | Move (tilt the stick gently to creep) |
+| 1 · 2 · 3, Shift | WALK / SNEAK / SPRINT | Change stance |
+| E / Space (hold to work) | ACT | Talk, take, open, throw a scrap, knock out a guard from behind |
+| Q | GROUP | Tell your friends to wait or follow |
 | P / Esc, M | II | Pause, sound on/off |
 
-## The camp
-- **Barracks are safe.** Guards and searchlights can't see inside, and the people there talk out loud.
-- **The yard:** if a guard sees you, he orders you back inside. If you're still in his sight five seconds later, he chases you.
-- **Restricted areas:** the wire, the gate, the workshop, the office and the power house. Being seen in any of them gets you chased quickly.
-- **The East compound** is forbidden, and guards there react almost at once. Every so often a slow line of prisoners is marched under guard through the East Block door. None of them come back out.
-- **Random alarms:** a siren goes off now and then, and until it stops guards treat anyone outside as a runner.
-- **People:** you can talk to the prisoners in the barracks and the yard. Two trustees, Kessler and Rusk, are prisoners who work for the guards: they're hostile, and Rusk reports anyone he sees outside. You can also talk to guards, but it only provokes abuse and draws their attention.
-
 ## Sound
-The camp itself is silent. Prisoners whisper, which you hear as soft, breathy noise. Guards and trustees shout, which you hear as harsh, loud barks. The only other sound is the siren.
+The camp itself is silent. Prisoners whisper, guards and trustees shout, dogs bark, and at night a siren sometimes goes off.
