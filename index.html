@@ -62,6 +62,11 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 #objs li.done::before{background:var(--ok);border-color:var(--ok)}
 #objs li.next{color:var(--sodium)}
 #objs li.next::before{border-color:var(--sodium)}
+#objs li.pick{pointer-events:auto;cursor:pointer}
+#objs li.guiding{color:#ffbe48}
+#objs li.guiding::before{background:#ffbe48;border-color:#ffbe48;border-radius:50%}
+#objs li.hintline{font-size:11px;color:var(--dim);margin-top:2px}
+#objs li.hintline::before{display:none}
 #inv{font-size:13px;color:var(--dim);margin-top:8px;line-height:1.35}
 #crew{display:grid;grid-template-columns:1fr auto;gap:3px 8px;font-size:14px;align-items:center}
 #crew .st{font:600 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:2px;border:1px solid var(--edge);color:var(--dim);text-align:center}
@@ -450,7 +455,7 @@ function newGame(){
     if(c==='L')LAMPS.push({x:x+.5,y:y+.5});
   }
   G={time:0,day:1,phase:'pick',clock:0,ff:1,job:null,shift:0,shiftDone:false,burden:0,scent:false,armband:false,breaker:false,scraps:0,eastShifts:0,found:[],stains:[],detail:[],eastOpen:false,
-     power:true,alarm:0,lives:3,caught:0,has:{cutters:false,keycard:false,blankets:0},tunnel:0,skipped:false,route:null,
+     power:true,alarm:0,lives:3,caught:0,has:{cutters:false,keycard:false,blankets:0},tunnel:0,goal:null,skipped:false,route:null,
      flags:{beam:false,office:false,gate:false,fence:false,inner:false},won:false,over:false,fade:0,fadeMsg:'',fadeOut:0,
      spotCd:[0,0,0,0],start:spawns.S,compHome:{mira:spawns.m,tomas:spawns.t,bram:spawns.b},dialogQ:[],dlg:null,hudKey:'',outside:false,leaveHinted:false,shake:0,
      alarmEvT:85,queue:{active:false,npcs:[],nextT:24,count:0},doorOpen:false,
@@ -820,7 +825,7 @@ function updateDialog(dt){
 }
 
 /* ================= audio: a silent camp; only sounds that mean something ================= */
-let AC=null,master=null,noiseBuf=null,soundOn=true,sirenA=null,sirenB=null,sirenGain=null;
+const AMB={};let AC=null,master=null,noiseBuf=null,soundOn=true,sirenA=null,sirenB=null,sirenGain=null;
 function initAudio(){
   if(AC){if(AC.state!=='running')AC.resume();return;}
   try{
@@ -833,6 +838,16 @@ function initAudio(){
     sirenGain=AC.createGain();sirenGain.gain.value=0;
     sirenA=AC.createOscillator();sirenA.type='triangle';sirenB=AC.createOscillator();sirenB.type='sine';
     sirenA.connect(lp);sirenB.connect(lp);lp.connect(sirenGain).connect(master);sirenA.start();sirenB.start();
+    // ambience: wind, the live fence's hum, the generator's thrum; levels are set every frame by distance and time of day
+    const wind=AC.createBufferSource();wind.buffer=noiseBuf;wind.loop=true;
+    AMB.windLP=AC.createBiquadFilter();AMB.windLP.type='lowpass';AMB.windLP.frequency.value=380;AMB.windLP.Q.value=0.4;
+    AMB.wind=AC.createGain();AMB.wind.gain.value=0;wind.connect(AMB.windLP).connect(AMB.wind).connect(master);wind.start();
+    const hum=AC.createOscillator();hum.type='sawtooth';hum.frequency.value=100;const humLP=AC.createBiquadFilter();humLP.type='lowpass';humLP.frequency.value=320;
+    AMB.hum=AC.createGain();AMB.hum.gain.value=0;hum.connect(humLP).connect(AMB.hum).connect(master);hum.start();
+    const gen=AC.createOscillator();gen.type='triangle';gen.frequency.value=49;const gen2=AC.createOscillator();gen2.type='square';gen2.frequency.value=98;
+    const genLP=AC.createBiquadFilter();genLP.type='lowpass';genLP.frequency.value=230;const g2=AC.createGain();g2.gain.value=0.25;
+    const wob=AC.createOscillator();wob.frequency.value=2.7;const wobG=AC.createGain();wobG.gain.value=0.3;const genMod=AC.createGain();genMod.gain.value=0.7;wob.connect(wobG).connect(genMod.gain);
+    AMB.gen=AC.createGain();AMB.gen.gain.value=0;gen.connect(genLP);gen2.connect(g2).connect(genLP);genLP.connect(genMod).connect(AMB.gen).connect(master);gen.start();gen2.start();wob.start();
     const s=AC.createBufferSource();s.buffer=AC.createBuffer(1,1,22050);s.connect(AC.destination);s.start(0);
     AC.resume();
   }catch(e){AC=null;}
@@ -861,6 +876,18 @@ function sfx(name,vol=1){
     case 'snip':noiseHit(t,{type:'highpass',freq:4500,q:0.7,peak:0.05,attack:0.001,decay:0.045});break;
     case 'thud':tone(t,{f0:85,f1:45,peak:0.14*vol,attack:0.005,decay:0.3,lp:260});tone(t,{f0:170,f1:100,peak:0.05*vol,attack:0.005,decay:0.16,lp:420});break;
     case 'powerdown':tone(t,{f0:110,f1:28,peak:0.07,attack:0.02,decay:2.4,lp:420});tone(t,{f0:230,f1:58,peak:0.03,attack:0.02,decay:2.2,lp:600});break;
+    case 'step_wood':tone(t,{f0:150,f1:95,peak:0.035*vol,attack:0.004,decay:0.07,lp:420});noiseHit(t,{freq:900,q:1,peak:0.014*vol,attack:0.003,decay:0.05});break;
+    case 'step_dirt':noiseHit(t,{freq:1000,q:0.8,peak:0.026*vol,attack:0.006,decay:0.07});break;
+    case 'step_gravel':noiseHit(t,{freq:2600,q:0.6,peak:0.03*vol,attack:0.004,decay:0.07});noiseHit(t+0.025,{freq:3800,q:0.8,peak:0.014*vol,attack:0.003,decay:0.05});break;
+    case 'step_grass':noiseHit(t,{type:'highpass',freq:2800,q:0.5,peak:0.012*vol,attack:0.01,decay:0.09});break;
+    case 'cough':noiseHit(t,{freq:430,q:1.1,peak:0.045*vol,attack:0.01,decay:0.13});noiseHit(t+0.24,{freq:400,q:1.1,peak:0.03*vol,attack:0.01,decay:0.12});tone(t,{f0:170,f1:120,peak:0.012*vol,attack:0.01,decay:0.12,lp:420});break;
+    case 'creak':tone(t,{f0:210,f1:150,type:'triangle',peak:0.016*vol,attack:0.09,decay:0.4,lp:900});break;
+    case 'clank':tone(t,{f0:880,f1:860,type:'triangle',peak:0.018*vol,attack:0.002,decay:0.55,lp:1800});noiseHit(t,{freq:2600,q:3,peak:0.02*vol,attack:0.001,decay:0.03});break;
+    case 'crow':for(const k of [0,0.4]){tone(t+k,{f0:620,f1:430,type:'sawtooth',peak:0.012*vol,attack:0.02,decay:0.22,lp:1300});noiseHit(t+k,{freq:1150,q:2,peak:0.006*vol,attack:0.02,decay:0.18});}break;
+    case 'cricket':for(const k of [0,0.06,0.12])tone(t+k,{f0:4300,f1:4250,peak:0.005*vol,attack:0.004,decay:0.03});break;
+    case 'owl':tone(t,{f0:400,f1:370,peak:0.016*vol,attack:0.06,decay:0.35});tone(t+0.62,{f0:410,f1:355,peak:0.013*vol,attack:0.06,decay:0.55});break;
+    case 'farbark':for(const k of [0,0.32])tone(t+k,{f0:290,f1:170,type:'triangle',peak:0.016*vol,attack:0.01,decay:0.12,lp:520});break;
+    case 'train':noiseHit(t,{type:'lowpass',freq:130,q:0.5,peak:0.05*vol,attack:2.5,decay:5});break;
     case 'heart':for(const [k,v] of [[0,1],[0.19,0.7]]){tone(t+k,{f0:62,f1:40,peak:0.13*vol*v,attack:0.004,decay:0.12,lp:160});tone(t+k,{f0:140,f1:95,peak:0.045*vol*v,attack:0.004,decay:0.09,lp:320});}break;
   }}catch(e){}
 }
@@ -868,10 +895,39 @@ function updateAudio(){
   if(!AC||!sirenGain)return;
   const t=AC.currentTime;
   master.gain.setTargetAtTime(soundOn&&running&&!paused?0.55:0,t,0.05);
-  const on=(G.sirenT||0)>0&&G.phase==='night';
+  const on=(G.sirenT||0)>0&&(G.phase==='night'||G.phase==='day');
   sirenGain.gain.setTargetAtTime(on?0.032:0,t,on?0.8:1.2);
   const ph=(G.time%7)/7, f=260+240*(0.5-0.5*Math.cos(ph*Math.PI*2));
   sirenA.frequency.setTargetAtTime(f,t,0.05);sirenB.frequency.setTargetAtTime(f*1.006,t,0.05);
+}
+const FENCE_PTS=[];
+function updateAmbient(dt){
+  if(!AC||!AMB.wind)return;
+  const t=AC.currentTime,inside=zoneAt(P.x,P.y)==='safe',night=isNight(),live=running&&!paused&&soundOn&&G.phase!=='pick';
+  // wind with slow gusts, muffled under a roof
+  G.gustT=(G.gustT||0)-dt;if(G.gustT<=0){G.gustT=2+Math.random()*4;G.gust=0.55+Math.random()*0.9;}
+  const wl=live?(night?0.03:0.022)*(G.gust||1)*(inside?0.45:1):0;
+  AMB.wind.gain.setTargetAtTime(wl,t,1.2);AMB.windLP.frequency.setTargetAtTime(inside?200:300+180*(G.gust||1),t,1);
+  // the electric fence hums when you're close; the generator thrums near the power house
+  if(!FENCE_PTS.length)for(let y=0;y<H;y++)for(let x=0;x<W;x++)if('FT'.includes(grid[y][x]))FENCE_PTS.push([x,y]);
+  let fd=99;if(G.power)for(const [x,y] of FENCE_PTS){if(!'FT'.includes(grid[y][x]))continue;const d=Math.hypot(x+.5-P.x,y+.5-P.y);if(d<fd)fd=d;}
+  const hk=Math.max(0,1-(fd-0.6)/3.4);AMB.hum.gain.setTargetAtTime(live?0.02*hk*hk:0,t,0.3);
+  const gd=Math.hypot(P.x-14.5,P.y-11.5),gk=G.power?Math.max(0,1-(gd-1)/6.5):0;AMB.gen.gain.setTargetAtTime(live?0.05*gk*gk:0,t,0.4);
+  if(!live)return;
+  // footsteps, by surface and gait
+  if(P.moving&&!P.inLine){const st=Math.floor(P.anim/Math.PI);if(st!==P.lastStep){P.lastStep=st;
+    const fx=Math.floor(P.x),fy=Math.floor(P.y),tex=inb(fx,fy)?floorTexAt(fx,fy)[0]:'dirt';
+    const kind=tex==='woodFloor'?'step_wood':tex==='gravel'?'step_gravel':tex==='grass'?'step_grass':'step_dirt';
+    sfx(kind,P.crouch?0.35:P.sprinting?1.1:0.7);}}
+  // sparse, distant life
+  G.ambT=(G.ambT==null?6:G.ambT)-dt;
+  if(G.ambT<=0){
+    const r=Math.random();
+    if(inside){G.ambT=9+Math.random()*12;sfx(r<0.6?'cough':'creak',0.5+Math.random()*0.5);}
+    else if(!night){G.ambT=8+Math.random()*12;if(r<0.55)sfx('clank',0.5+Math.random()*0.6);else if(r<0.85)sfx('crow',0.6+Math.random()*0.5);else sfx('cough',0.35);}
+    else{G.ambT=14+Math.random()*18;if(r<0.35)sfx('owl',0.7);else if(r<0.7)sfx('farbark',0.6);else if(r<0.85)sfx('train',0.8);else sfx('creak',0.4);}
+  }
+  if(night&&!inside){G.crickT=(G.crickT||2)-dt;if(G.crickT<=0){G.crickT=1.2+Math.random()*3;sfx('cricket',0.6+Math.random()*0.6);}}
 }
 function updateHeartbeat(dt){
   const hunted=guards.some(g=>g.state==='chase'&&g.target&&(g.target===P||g.target.isComp))||dogs.some(d=>d.state==='chase');
@@ -1445,12 +1501,12 @@ function endGame(kind){
 function objectives(){
   const n=comps.filter(c=>c.recruited&&!c.lost).length;
   return [
-    ['The wire: kill the power (Tomas, or the East breaker)',!G.power||G.flags.fence],
-    ['  …past the inner fence (gate keycard, or a blanket over the barbs)',G.flags.gate||G.flags.inner||G.flags.fence],
-    ['  …over the outer fence (wire cutters, or a blanket)',G.flags.fence],
-    [`Or the tunnel under Block A (${Math.floor(G.tunnel*100)}% dug)`,G.tunnel>=1,true],
-    [`Optional: bring Mira, Tomas and Bram (${n}/3)`,n===3,true],
-    ['Reach the trees',G.won]
+    ['The wire: kill the power (Tomas, or the East breaker)',!G.power||G.flags.fence,false,'power'],
+    ['  …past the inner fence (gate keycard, or a blanket over the barbs)',G.flags.gate||G.flags.inner||G.flags.fence,false,'inner'],
+    ['  …over the outer fence (wire cutters, or a blanket)',G.flags.fence,false,'outer'],
+    [`Or the tunnel under Block A (${Math.floor(G.tunnel*100)}% dug)`,G.tunnel>=1&&G.route==='tunnel'&&G.won,true,'tunnel'],
+    [`Optional: bring Mira, Tomas and Bram (${n}/3)`,n===3,true,'friends'],
+    ['Reach the trees',G.won,false,'trees']
   ];
 }
 const STATUS={idle:'Not found',day:'At work',follow:'Following',wait:'Waiting',work:'Working',captured:'Captured',lost:'Taken east',escaped:'Free',gone:'—'};
@@ -1466,13 +1522,15 @@ function updateHud(force){
   const z=zoneAt(P.x,P.y);const lg=legal(P);
   let zl=z==='safe'?'Barrack · safe':z==='outside'?'Outside the wire':G.phase==='day'&&lg==='ok'?(G.job&&!G.shiftDone?'On duty':'Yard'):LEGAL_LABEL[lg];
   if(G.armband&&G.phase==='night'&&z!=='safe')zl+=' · armband';
-  const key=JSON.stringify([objectives(),comps.map(c=>c.state+c.recruited),G.lives,zl,G.phase,G.job,G.shiftDone,G.scraps,G.armband,Math.floor(G.shift*20),G.day]);
+  const key=JSON.stringify([guideKey(),G.goal,objectives(),comps.map(c=>c.state+c.recruited),G.lives,zl,G.phase,G.job,G.shiftDone,G.scraps,G.armband,Math.floor(G.shift*20),G.day]);
   const cl=document.getElementById('clock');cl.innerHTML='';cl.append(clockText());if(G.ff>1){const s=document.createElement('span');s.className='ff';s.textContent='▸▸';cl.appendChild(s);}
   document.querySelector('#weight i').style.width=G.burden+'%';
   if(!force&&key===G.hudKey)return;G.hudKey=key;
   const ul=document.getElementById('objs');ul.innerHTML='';
   let next=null;
-  for(const [t,d,opt] of objectives()){const li=document.createElement('li');li.textContent=t.trim();if(t.startsWith('  '))li.style.paddingLeft='12px';if(d)li.className='done';else if(!next&&!opt){li.className='next';next=t.trim().replace(/^…/,'');}ul.appendChild(li);}
+  const gk=guideKey();for(const [t,d,opt,k] of objectives()){const li=document.createElement('li');li.textContent=t.trim();if(t.startsWith('  '))li.style.paddingLeft='12px';if(d)li.className='done';else if(!next&&!opt){li.className='next';next=t.trim().replace(/^…/,'');}
+    if(!d){li.classList.add('pick');if(k===gk)li.classList.add('guiding');li.onclick=()=>{G.goal=G.goal===k?'none':k;G.guide=null;if(isTouch())trEl.classList.add('collapsed');updateHud(true);};}ul.appendChild(li);}
+  {const li=document.createElement('li');li.className='hintline';li.textContent=gk&&gk!=='work'?'Tap a line to be guided there; tap again to stop.':'Tap a line to be guided there.';ul.appendChild(li);}
   let nx='';
   if(G.phase==='day'&&G.skipped)nx='No work today · stay out of sight';
   else if(G.phase==='day'&&G.job){const J=JOBS[G.job];nx=G.shiftDone?'Work done. Wait for the evening bell.':`Work: ${J.name} · ${Math.round(G.shift*100)}%`;}
@@ -2110,18 +2168,45 @@ function workTarget(){
     return b?{x:b.x,y:b.y,label:'Next stain',inside:true}:null;}
   const sp=JOBS[G.job].spot;return {x:sp.x,y:sp.y,label:JOBS[G.job].name};
 }
+function nearestTile(chs,fx,fy,filter){let b=null,bd=1e9;for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(!chs.includes(grid[y][x]))continue;if(filter&&!filter(x,y))continue;const d=Math.hypot(x+.5-fx,y+.5-fy);if(d<bd){bd=d;b={x:x+.5,y:y+.5};}}return b;}
+// which goal the guide follows: work by day, else the player's pick, else the most sensible next step
+function guideKey(){
+  if(!G||P.inLine||G.over||G.phase==='pick'||G.phase==='line')return null;
+  if(workTarget())return 'work';
+  if(G.goal==='none')return null;
+  const done=Object.fromEntries(objectives().map(o=>[o[3],o[1]]));
+  if(G.goal&&!done[G.goal])return G.goal;
+  if(G.tunnel>0)return 'tunnel';
+  for(const k of ['power','inner','outer','trees'])if(!done[k])return k;
+  return null;
+}
+function guideTarget(){
+  const k=guideKey();if(!k)return null;
+  if(k==='work')return workTarget();
+  const bunk=()=>{const t=nearestTile('u',P.x,P.y);return t&&{x:t.x,y:t.y,label:'Blankets: on the bunks'};};
+  const fenceX=()=>clamp(Math.floor(P.x),2,29)+0.5;
+  switch(k){
+    case 'power':{const t=nearestTile('gq',P.x,P.y);return t&&{x:t.x,y:t.y,label:G.breaker||compNear('tomas')?'Generator (power house)':'Generator: bring Tomas, or learn the breaker'};}
+    case 'inner':if(G.has.keycard)return {x:15.5,y:8.5,label:'Inner gate'};if(G.has.blankets>0){const fx=fenceX();return {x:fx>14&&fx<17?13.5:fx,y:8.5,label:'Inner fence: climb with a blanket'};}return bunk();
+    case 'outer':if(G.has.cutters||G.has.blankets>0)return {x:fenceX(),y:4.5,label:'Outer fence'};return bunk();
+    case 'tunnel':if(P.y<4)return {x:TEXIT.x,y:TEXIT.y,label:'Tunnel exit'};return {x:DIG.x,y:DIG.y,label:G.tunnel>=1?'Tunnel entrance (Block A)':'Dig spot: under the bunks, Block A'};
+    case 'friends':{let b=null,bd=1e9;for(const c of comps){if(c.lost||c.state==='follow'||c.state==='escaped'||c.state==='gone')continue;const d=Math.hypot(c.x-P.x,c.y-P.y);if(d<bd){bd=d;b=c;}}return b&&{x:b.x,y:b.y,label:b.name};}
+    case 'trees':{const cut=nearestTile('c',P.x,P.y,(x,y)=>y===4);if(P.y<4)return null;if(cut)return {x:cut.x,y:2.6,label:'The trees'};return {x:fenceX(),y:4.5,label:'Outer fence'};}
+  }
+  return null;
+}
 function updateGuide(dt){
-  const t=workTarget();G.guideT=(G.guideT||0)-dt;
+  const t=guideTarget();G.guideT=(G.guideT||0)-dt;
   if(!t){G.guide=null;return;}
-  if(!G.guide||G.guideT<=0||G.guide.tx!==t.x||G.guide.ty!==t.y){
+  if(!G.guide||G.guideT<=0||Math.hypot(G.guide.tx-t.x,G.guide.ty-t.y)>0.6){
     G.guideT=0.4;const path=findPath(P.x,P.y,t.x,t.y,walkP);
     const pts=[[P.x,P.y]];if(path)for(const n of path.slice(0,-1))pts.push([n.x,n.y]);pts.push([t.x,t.y]);
     let len=0;for(let i=1;i<pts.length;i++)len+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
     G.guide={pts,len,tx:t.x,ty:t.y,label:t.label,ok:!!path};}
-  else G.guide.pts[0]=[P.x,P.y];
+  else{G.guide.pts[0]=[P.x,P.y];G.guide.label=t.label;}
 }
 function drawGuideTrail(){
-  const g=G.guide;if(!g||P.working||g.len<1.6)return;
+  const g=G.guide;if(!g||!g.ok||P.working||g.len<1.6)return;
   const pts=g.pts,step=0.42,maxD=Math.min(g.len-0.7,14);let d=0,i=1,acc=0,k=0;
   ctx.save();
   for(let at=0.9;at<maxD;at+=step,k++){
@@ -2129,6 +2214,7 @@ function drawGuideTrail(){
     if(i>=pts.length)break;
     const a=pts[i-1],b=pts[i],sl=Math.hypot(b[0]-a[0],b[1]-a[1])||1,f=(at-acc)/sl,dx=(b[0]-a[0])/sl,dy=(b[1]-a[1])/sl;
     const side=k%2?1:-1,x=a[0]+(b[0]-a[0])*f-dy*0.09*side,y=a[1]+(b[1]-a[1])*f+dx*0.09*side;
+    {const bi=inb(Math.floor(x),Math.floor(y))?buildAt[Math.floor(y)][Math.floor(x)]:-1;if(bi>=0&&!roofCut(bi))continue;}
     const p=iso(x,y),q=iso(x+dx,y+dy),ang=Math.atan2(q[1]-p[1],q[0]-p[0]);
     const fade=Math.min(1,(maxD-at)/3)*Math.min(1,(at-0.9)/0.8+0.3),wave=0.45+0.55*Math.max(0,Math.sin(at*1.4-G.time*4.2));
     ctx.globalAlpha=0.85*fade*wave;
@@ -2171,13 +2257,14 @@ function render(){
   }
   curIt=(running&&!paused&&!P.busy&&!P.inLine&&G.phase!=='pick')?findInteract():null;
   if(curIt&&curIt.at){const p=iso(curIt.at.x,curIt.at.y);const r=15+Math.sin(G.time*5)*1.5;ctx.strokeStyle='rgba(240,174,60,.55)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(p[0],p[1],r*1.5,r*0.75,0,0,7);ctx.stroke();}
-  updateGuide(frameDt);drawGuideTrail();
+  updateGuide(frameDt);if(!isNight())drawGuideTrail();
   // the tunnel: a lifted floorboard and a hole in Block A, and where it comes up beyond the wire
   if(G.tunnel>0){const p=iso(DIG.x,DIG.y),r=5+11*G.tunnel;
     ctx.fillStyle='rgba(92,70,48,.9)';ctx.beginPath();ctx.ellipse(p[0]+r*1.5,p[1]+3,r*0.9,r*0.4,0,0,7);ctx.fill();
     ctx.fillStyle='#120d09';ctx.beginPath();ctx.ellipse(p[0],p[1],r*1.6,r*0.8,0,0,7);ctx.fill();
     ctx.strokeStyle='rgba(60,40,26,.9)';ctx.lineWidth=1.5;ctx.stroke();
     const b0=iso(DIG.x-0.45,DIG.y+0.15,0.05),b1=iso(DIG.x+0.1,DIG.y-0.45,0.05);ctx.strokeStyle='#8a6440';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(b0[0],b0[1]-10);ctx.lineTo(b1[0],b1[1]-10);ctx.stroke();}
+  if(G.tunnel<=0){const a=iso(DIG.x-0.35,DIG.y+0.1,0.02),b=iso(DIG.x+0.15,DIG.y-0.4,0.02);ctx.strokeStyle='rgba(70,48,30,.85)';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();ctx.strokeStyle='rgba(170,130,86,.7)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(a[0],a[1]-2);ctx.lineTo(b[0],b[1]-2);ctx.stroke();}
   if(G.tunnel>=1){const p=iso(TEXIT.x,TEXIT.y);ctx.fillStyle='rgba(100,80,56,.95)';ctx.beginPath();ctx.ellipse(p[0]+10,p[1]+4,22,9,0,0,7);ctx.fill();
     ctx.fillStyle='#120d09';ctx.beginPath();ctx.ellipse(p[0],p[1],16,8,0,0,7);ctx.fill();}
   // job marker
@@ -2252,6 +2339,7 @@ function render(){
     const col=g.state==='chase'?'rgba(224,74,58,.20)':g.susp>0.3||g.state==='suspicious'||g.state==='search'?'rgba(240,174,60,.16)':night?'rgba(255,236,170,.07)':'rgba(255,236,170,.05)';
     ctx.beginPath();pts.forEach((p,i)=>{const q=iso(p[0],p[1]);i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);});ctx.closePath();ctx.fillStyle=col;ctx.fill();
   }
+  if(isNight())drawGuideTrail();
   drawGuideBeacon();
   // screen-space overlays
   ctx.setTransform(DPR,0,0,DPR,0,0);
@@ -2335,6 +2423,8 @@ function drawMini(){
     for(let y=0;y<H;y++)for(let x=0;x<W;x++){const c=grid[y][x];if(marks[c])mark(x,y);}
     if(G.flags.gate&&!G.flags.fence&&!G.power&&G.has.cutters){mctx.fillStyle=`rgba(240,174,60,${0.3+pulse*0.4})`;mctx.fillRect(3,4*s,30*s,s);}
   }
+  mctx.fillStyle='#8a6440';mctx.fillRect(DIG.x*s-1.5,DIG.y*s-1.5,3,3);if(G.tunnel>=1){mctx.fillStyle='#c9a46a';mctx.fillRect(TEXIT.x*s-1.5,TEXIT.y*s-1.5,3,3);}
+  if(G.guide){mctx.fillStyle=`rgba(255,190,72,${0.55+pulse*0.45})`;mctx.beginPath();mctx.arc(G.guide.tx*s,G.guide.ty*s,2.6,0,7);mctx.fill();}
   for(const n of G.npcs){mctx.fillStyle=n.kind==='trustee'?'#b07a3c':'#6f7f96';mctx.fillRect(n.x*s-1,n.y*s-1,2,2);}
   for(const n of G.queue.npcs){if(n.y<27&&n!==P){mctx.fillStyle='#c9c3b4';mctx.fillRect(n.x*s-1,n.y*s-1,2,2);}}
   for(const g of guards){mctx.fillStyle=g.state==='ko'?'#555':g.state==='chase'?'#ff5a46':'#c9473a';mctx.fillRect(g.x*s-1.5,g.y*s-1.5,3,3);}
@@ -2363,7 +2453,7 @@ function step(dt){
   updateAlarmEvents(dt);
   if(!guards.some(g=>g.state==='chase')&&!dogs.some(d=>d.state==='chase'))G.alarm=Math.max(0,G.alarm-dt);
   if(G.sirenT>0)G.sirenT-=dt;
-  updateHeartbeat(dt);
+  updateHeartbeat(dt);updateAmbient(dt);
   if(G.phase!=='line'&&!G.over)updateClock(dt);
   updateDialog(dt);
   updateHud(false);

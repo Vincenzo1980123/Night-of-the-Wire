@@ -36,6 +36,7 @@ Grauhof is open: there's no fixed order and no required route.
 - **In daylight:** every action works by day too, but a dead fence in daylight sets off the sirens at once.
 - **Friends are optional.** Recruit Mira, Tomas and Bram and bring them, ask them to come with you even in daylight, or go alone. The ending reflects who made it, how and when.
 - Blankets come from the bunks (up to two). The "Ways out" panel tracks every route.
+- **Finding your way:** amber footprints, a floating marker and an edge arrow lead to the current goal. By day that's your work. Otherwise it's the next sensible step, such as the generator, the bunks for blankets, the fence, or the dig spot once you've started the tunnel. Tap any line in "Ways out" to be guided there instead; tap it again to stop. The guide resolves to what you actually need: no keycard and no blanket means it leads you to the bunks first. The dig spot (a loose floorboard in Block A) and the tunnel exit are also shown on the minimap.
 
 ## Visual style
 The look is mid-1990s European isometric 3D adventure games: polygonal characters walking through a hand-painted miniature world. All designs are original.
@@ -59,5 +60,6 @@ The look is mid-1990s European isometric 3D adventure games: polygonal character
 - **Speech sounds:** a soft breath when someone whispers to you, and a muffled thud when a guard shouts.
 - **Danger sounds:** a distant bark from the dogs, a quiet heartbeat while you're being hunted, and a slow, far-off siren during the random night alarms.
 - **Action sounds:** soft physical noises, such as a click, a snip, a thud and the generator winding down.
+- **Ambience:** kept quiet and sparse. Wind with slow gusts, muffled inside. The electric fence hums when you're near it, and the generator thrums by the power house (both stop when the power dies). Footsteps change with the surface and with sneaking or sprinting. Distant life comes in at long intervals: work clanks and crows by day, crickets, an owl, far-off dogs and a train at night, and coughs and creaking bunks in the barracks.
 - **Subtitles:** speech appears as film-style subtitles at the bottom, at most two lines at once, and only from people within earshot. Above a character's head there's only a small marker showing who is talking: dots for whispers, a red mark for shouts.
 - **Action prompt:** sits just above the subtitles, with a faint ring on the floor under whatever it refers to.
