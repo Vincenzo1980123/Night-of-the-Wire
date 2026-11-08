@@ -25,6 +25,13 @@ Open `index.html` in a browser. There's nothing to build or install.
 - **Selection:** after the fifth night, Block A is selected. If you've only worked and never escaped, you end up in the line anyway. Five full days played without skipping take about 30 minutes; finishing work early or sleeping through a night makes the time pass faster.
 - **Friends:** friends still in the cells at dawn are taken east and are gone for good.
 
+## Visual style
+The look is mid-1990s European isometric 3D adventure games: polygonal characters walking through a hand-painted miniature world. All designs are original.
+- **Characters:** real-time low-poly 3D figures with flat, faceted shading from a single light direction. They have toy-like proportions: oval heads, prominent noses, large simple eyes, oversized hands and boots. Their posture shows their state: prisoners stoop, the people in the line walk with their heads bowed, and guards stand upright. Poses blend smoothly between standing, walking, running, sneaking, sitting, kneeling to scrub and lying down.
+- **Environment:** procedurally generated low-resolution textures (concrete block, weathered planks, tar paper, corrugated iron, terracotta, brick, dirt, gravel), thick walls with crisp edges, painted windows and doors, cast shadows and contact shadows at the base of walls.
+- **Roofs:** they lift away when you step inside a building, so you see the interior in cutaway. Anything standing between the camera and you turns see-through.
+- **Performance:** the static art for each tile is rendered once into cached sprites, the way old isometric engines pre-rendered their bricks. Only animated details are drawn live: wire shimmer, smoke, steam and the generator light.
+
 ## Controls
 | Key | Touch | Action |
 | --- | --- | --- |
