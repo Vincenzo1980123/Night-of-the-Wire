@@ -114,6 +114,7 @@ h2{font:400 clamp(28px,6vw,42px)/1.05 var(--f-display);margin:0;text-wrap:balanc
 .job .jr b{color:var(--sodium);font-weight:600}
 .job .jf{font-style:italic;color:var(--dim);font-size:13.5px}
 .job.heavy{border-color:rgba(224,74,58,.55);background:rgba(224,74,58,.06)}
+.job.skip{border-style:dashed;background:rgba(236,228,207,.02)}
 .job.heavy .jw{color:#f3c9bf;border-color:rgba(224,74,58,.6)}
 #touch{position:fixed;inset:0;z-index:6;pointer-events:none}
 #tzone{position:absolute;left:0;bottom:0;width:55%;height:62%;pointer-events:auto;touch-action:none}
@@ -180,7 +181,7 @@ body.touch .mode{display:none}
     <canvas id="mini" width="132" height="84"></canvas>
   </div>
   <div class="card tasks">
-    <div class="lbl"><span>The plan</span></div>
+    <div class="lbl"><span>Ways out</span></div>
     <ul id="objs"></ul>
     <div id="inv"></div>
   </div>
@@ -208,7 +209,7 @@ body.touch .mode{display:none}
     <div class="eyebrow">Camp Grauhof · Block A · Day 1</div>
     <h1>Night of the <em>Wire</em></h1>
     <p>The Directorate calls Grauhof a labour camp. Everyone inside knows what the East Block is for. Every night another line of people walks slowly through its door, and the chimney smokes until morning.</p>
-    <p class="small">By day you work, and every job helps the people who keep you here. Some jobs give you something you can use; the worst job gives you the most. By night the searchlights come on, and you can try to get Mira, Tomas, Bram and yourself through the wire. Rumour says Block A will be selected after the fifth night.</p>
+    <p class="small">By day you work, and every job helps the people who keep you here. Some jobs give you something you can use; the worst job gives you the most. By night the searchlights come on. How you get out is up to you: through the wire, over it, or under it, with your friends or alone, at night or in broad daylight. You can even skip work, if you can stay out of sight. Rumour says Block A will be selected after the fifth night.</p>
     <p class="small touch-only">Left thumb moves you; tilt gently to creep. ACT talks, takes and opens; hold it to work. The mode button switches Walk, Sneak and Sprint. GROUP tells your friends to wait or follow.</p>
     <p class="note touch-only">On iPhone, switch off silent mode to hear the whispers, the dogs and the siren. Landscape gives a wider view.</p>
     <div class="keys desk-only">
@@ -449,8 +450,8 @@ function newGame(){
     if(c==='L')LAMPS.push({x:x+.5,y:y+.5});
   }
   G={time:0,day:1,phase:'pick',clock:0,ff:1,job:null,shift:0,shiftDone:false,burden:0,scent:false,armband:false,breaker:false,scraps:0,eastShifts:0,found:[],stains:[],detail:[],eastOpen:false,
-     power:true,alarm:0,lives:3,caught:0,has:{cutters:false,keycard:false},
-     flags:{beam:false,office:false,gate:false,fence:false},won:false,over:false,fade:0,fadeMsg:'',fadeOut:0,
+     power:true,alarm:0,lives:3,caught:0,has:{cutters:false,keycard:false,blankets:0},tunnel:0,skipped:false,route:null,
+     flags:{beam:false,office:false,gate:false,fence:false,inner:false},won:false,over:false,fade:0,fadeMsg:'',fadeOut:0,
      spotCd:[0,0,0,0],start:spawns.S,compHome:{mira:spawns.m,tomas:spawns.t,bram:spawns.b},dialogQ:[],dlg:null,hudKey:'',outside:false,leaveHinted:false,shake:0,
      alarmEvT:85,queue:{active:false,npcs:[],nextT:24,count:0},doorOpen:false,
      hints:{},convo:{A:{i:0,t:2},B:{i:0,t:6},C:{i:0,t:4}},news:[],intrusiveT:30,abuseT:5,actHeld:false,subs:[],sirenT:0};
@@ -506,7 +507,7 @@ function startDay(){
   // the camp repairs itself every morning
   G.power=true;setTiles('q','g');setTiles('_','G',8);setTiles('c','F',4);
   grid[14][5]='d';grid[14][25]='d';
-  G.flags={beam:false,office:false,gate:false,fence:false};
+  G.flags={beam:false,office:false,gate:false,fence:false,inner:false};setTiles('c','f',8);G.skipped=false;
   G.alarm=0;G.armband=false;G.job=null;G.shift=0;G.shiftDone=false;G.eastOpen=false;G.detail=[];G.stains=[];G.doorOpen=false;
   G.queue.active=false;G.queue.npcs=[];
   const lost=comps.filter(c=>c.state==='captured');
@@ -537,10 +538,19 @@ function showJobPicker(){
     b.addEventListener('click',()=>chooseJob(id));
     box.appendChild(b);
   }
+  {const b=document.createElement('button');b.type='button';b.className='job skip';
+    const mk=(cls,txt)=>{const s=document.createElement('span');s.className=cls;s.textContent=txt;b.appendChild(s);};
+    mk('jn','Slip away');mk('jw','Weight +6 at the evening count');mk('jd','Answer to your number, then vanish. No work today.');
+    const r=document.createElement('span');r.className='jr';const bb=document.createElement('b');bb.textContent='You gain: ';r.append(bb,'A day of your own: dig, scout, steal, or try the wire in daylight. In the yard, any guard who spots you beats you back to your barrack.');b.appendChild(r);
+    mk('jf','"Every guard knows your number."');
+    b.addEventListener('click',()=>chooseJob('none'));box.appendChild(b);}
   document.getElementById('sJob').hidden=false;
 }
 function chooseJob(id){
   document.getElementById('sJob').hidden=true;
+  if(id==='none'){G.job=null;G.skipped=true;G.phase='day';G.clock=0;G.ff=1;G.shift=0;G.shiftDone=false;
+    showDialog('hint',"No work for you today. The barracks are safe. In the open yard, guards who spot you will beat you back inside. Everything else is up to you, but in daylight the guards see everything.",8);
+    computeFloor();updateHud(true);return;}
   G.job=id;G.phase='day';G.clock=0;G.ff=1;G.shift=0;G.shiftDone=false;
   const J=JOBS[id];
   if(id==='east'){
@@ -593,9 +603,29 @@ function updateWork(dt){
   }
   if(G.shift>=1)finishShift();
 }
+const DIG={x:3.5,y:24.4},TEXIT={x:4.5,y:3.0};
+const TUNNEL_LINES=[[0.25,"Under the floorboards: clay, then stones. Fingernails first."],[0.5,"Halfway, by the count of my breaths. The dirt goes down my trouser legs and out into the yard."],[0.75,"I can hear roots. Roots mean outside."],[1,"Cold air that doesn't smell of the chimney. The tunnel is through. Whoever follows me now comes out beyond the wire."]];
+function updateDig(dt){
+  P.digging=false;
+  if(!G.actHeld||P.moving||P.busy||P.inLine||G.tunnel>=1||G.phase==='pick'||G.phase==='line')return;
+  if(Math.hypot(P.x-DIG.x,P.y-DIG.y)>=1.3)return;
+  P.digging=true;P.working=true;P.crouch=true;
+  const before=G.tunnel,b=comps.find(c=>c.id==='bram'&&c.state==='follow'&&dist(c,P)<3);
+  G.tunnel=Math.min(1,G.tunnel+dt/150*(b?1.8:1));
+  for(const [m,line] of TUNNEL_LINES)if(before<m&&G.tunnel>=m){showDialog('Aren',line,5,'whisper');if(b&&m===0.25)queueDialog('Bram',"Move. My hands are bigger.",3,'whisper');sfx('thud',0.3);updateHud(true);}
+}
+function tunnelGo(to){
+  const fol=comps.filter(c=>c.state==='follow');
+  P.busy={t:0,time:2.5*slow(),label:'Crawling',done:()=>{
+    if(to===TEXIT)G.route='tunnel';
+    P.x=to.x;P.y=to.y;P.dir=to===TEXIT?-Math.PI*0.75:Math.PI*1.25;
+    fol.forEach((c,i)=>{if(c.state!=='follow')return;c.x=to.x+(i-1)*0.7;c.y=to.y+(to===TEXIT?0.3:-0.6);c.path=null;});
+    G.camX=iso(P.x,P.y)[0];G.camY=iso(P.x,P.y)[1];sfx('thud',0.3);updateHud(true);}};
+}
 function nearStain(){let b=null,bd=0.8;for(const s of G.stains){if(s.a<=0)continue;const d=Math.hypot(P.x-s.x,P.y-s.y);if(d<bd){bd=d;b=s;}}return b;}
 function startNight(){
   if(G.job&&!G.shiftDone){G.burden=Math.min(100,G.burden+6);G.nightMsg="You didn't finish your work. At the evening count Kessler pointed you out, and the guards beat you in front of the block.";}
+  if(G.skipped){G.burden=Math.min(100,G.burden+6);G.nightMsg="You missed your work detail. At the evening count Kessler found your number on the list and the guards beat you in front of the block.";G.skipped=false;}
   G.phase='night';G.clock=0;G.ff=1;G.job=null;G.eastOpen=false;G.detail=[];G.stains=[];P.working=false;P.sleeping=false;
   grid[14][5]=G.has.cutters?'d':'j';grid[14][25]='o';
   G.queue.nextT=18;G.alarmEvT=70+Math.random()*60;G.comforted={};
@@ -621,6 +651,8 @@ function dawnRollCall(){
     if(G.lives<=0){startLine('caught');return;}
     G.news.push("Dawn roll call: you weren't in your block. They found you and beat you in front of everyone. That was a failed attempt.");
   }
+  if(G.tunnel>0&&Math.random()<0.15){G.tunnel=0;G.burden=Math.min(100,G.burden+8);
+    G.news.push("Morning inspection in Block A. They found the tunnel under the bunk, filled it with rubble and beat the whole row. Start again, or find another way out.");}
   G.day++;startDay();
 }
 function startLine(reason){
@@ -863,6 +895,7 @@ function legal(t){
       if(G.job==='office'&&r&&r.name==='office')return 'ok';
     }
     if(z==='yard'){
+      if(me&&G.skipped&&G.clock>20)return 'slack';
       if(me&&G.job&&!G.shiftDone&&G.clock>25){const s=JOBS[G.job].spot||{x:31.5,y:15.5};if(Math.hypot(t.x-s.x,t.y-s.y)>5)return 'slack';}
       return 'ok';
     }
@@ -933,9 +966,9 @@ function dayBeating(g){
   g.warnT=null;g.state='return';g.susp=0;g.path=null;
   say(g,pick(["Work, or die where you stand!","Next time it's the East line, number!"]));
   G.shift=Math.max(0,G.shift-0.25);G.burden=Math.min(100,G.burden+4);
-  if(G.job==='east'){P.x=37.5;P.y=15.6;}else{const s=JOBS[G.job].spot;P.x=s.x;P.y=s.y;}
+  if(!G.job){P.x=G.start.x;P.y=G.start.y;}else if(G.job==='east'){P.x=37.5;P.y=15.6;}else{const s=JOBS[G.job].spot;P.x=s.x;P.y=s.y;}
   P.busy=null;G.fade=1.2;G.fadeMsg='Beaten';G.shake=0.4;
-  showDialog('Aren',"They beat me and dragged me back to work. Keep your head down. Just work.",4,'whisper');
+  showDialog('Aren',G.job?"They beat me and dragged me back to work. Keep your head down. Just work.":"They beat me and threw me back into the barrack. Stay out of the open.",4,'whisper');
 }
 
 /* ================= updates ================= */
@@ -957,7 +990,7 @@ function updatePlayer(dt){
   }
   let wx=ix+iy,wy=-ix+iy;const l=Math.hypot(wx,wy);
   const m=effMode();
-  P.crouch=m===1||(P.working&&G.job==='east');P.sprinting=m===2;
+  P.crouch=m===1||(P.working&&G.job==='east')||P.digging;P.sprinting=m===2;
   if(l>0.05){
     if(P.busy)P.busy=null;
     if(P.sleeping){P.sleeping=false;G.ff=G.shiftDone&&G.phase==='day'?6:1;}
@@ -1106,7 +1139,8 @@ function updateGuard(g,dt){
     if(lg==='warn'||lg==='slack'){
       if(g.warnT==null){g.warnT=5;g.warnKind=lg;g.state='suspicious';g.lookT=5;g.shoutT=5;say(g,pick(lg==='slack'?WORK_SHOUT:YARD));
         if(lg==='warn'&&!G.hints.yard){G.hints.yard=true;queueDialog('hint',"That guard is ordering you back inside. Get out of his sight within five seconds, or he comes for you.",5);}
-        if(lg==='slack'&&!G.hints.slack){G.hints.slack=true;queueDialog('hint',"You're away from your work. Get back to it within five seconds or they'll beat you back to it.",5);}}
+        if(lg==='slack'&&!G.hints.slack&&!G.skipped){G.hints.slack=true;queueDialog('hint',"You're away from your work. Get back to it within five seconds or they'll beat you back to it.",5);}
+        if(lg==='slack'&&G.skipped&&!G.hints.skip){G.hints.skip=true;queueDialog('hint',"A guard has seen you idle in the yard. Get out of his sight or into a barrack within five seconds.",5);}}
       g.warnT-=dt;g.susp=Math.max(g.susp,0.3+(1-Math.max(0,g.warnT)/5)*0.65);
       if(g.warnT<=0){if(g.warnKind==='slack')dayBeating(g);else startChase(g,best);return;}
     }else{
@@ -1260,19 +1294,24 @@ function tileAction(ch,x,y){
       return m?{label:'Ask Mira to pick the office lock',fn:()=>assignWork(m,x,y,3.2,()=>{grid[y][x]='d';G.flags.office=true;computeFloor();sfx('click');})}
         :{label:'Locked office door',fn:()=>showDialog('Aren',"Locked. Mira could open this in her sleep.",3.5,'whisper')};}
     case 'k':return {label:'Take the gate keycard',fn:()=>{grid[y][x]='K';G.has.keycard=true;sfx('pickup');showDialog('Aren',"The gate card.",3,'whisper');updateHud(true);}};
-    case 'g':{if(!night)return notByDay;const t=compNear('tomas');
+    case 'g':{const t=compNear('tomas');
       if(t)return {label:'Ask Tomas to kill the generator',fn:()=>assignWork(t,x,y,3.6,powerOff)};
       if(G.breaker)return {label:'Pull the breaker (third lever)',fn:()=>{P.busy={t:0,time:4*slow(),label:'Third lever',done:powerOff};}};
       return {label:'Generator',fn:()=>showDialog('Aren',"I'd only electrocute myself. Tomas knows this machine. The East detail is said to know the breaker.",4,'whisper')};}
-    case 'G':if(!night)return notByDay;return G.has.keycard?{label:'Open the inner gate',fn:()=>{setTiles('G','_',8);G.flags.gate=true;sfx('click');sfx('thud',0.5);updateHud(true);}}
+    case 'G':return G.has.keycard?{label:'Open the inner gate',fn:()=>{setTiles('G','_',8);G.flags.gate=true;sfx('click');sfx('thud',0.5);updateHud(true);}}
         :{label:'Inner gate',fn:()=>showDialog('Aren',"Card reader. The guard office keeps a spare card.",3.5,'whisper')};
     case 'F':if(y!==4||x<1||x>42||x===31)return null;
-      if(!night)return notByDay;
       if(G.power)return {label:'Outer fence (live)',fn:()=>{showDialog('Aren',"It's humming. Touch that and I'm dead. The power has to go first.",4,'whisper');}};
-      if(!G.has.cutters)return {label:'Outer fence',fn:()=>showDialog('Aren',"Dead wire now, but I need something to cut it.",4,'whisper')};
-      return {label:'Cut through the fence',fn:()=>{P.busy={t:0,time:2.2*slow(),label:'Cutting',done:()=>{grid[y][x]='c';G.flags.fence=true;sfx('snip');updateHud(true);showDialog('Aren',"Through. Into the trees, everyone.",3.5,'whisper');}};}};
+      if(G.has.cutters)return {label:'Cut through the fence',fn:()=>{P.busy={t:0,time:2.2*slow(),label:'Cutting',done:()=>{grid[y][x]='c';G.flags.fence=true;G.route=G.route||'wire';sfx('snip');updateHud(true);showDialog('Aren',"Through. Into the trees, everyone.",3.5,'whisper');}};}};
+      if(G.has.blankets>0)return {label:'Throw a blanket over the wire and climb',fn:()=>{P.busy={t:0,time:3.4*slow(),label:'Climbing',done:()=>{grid[y][x]='c';G.has.blankets--;G.flags.fence=true;G.route=G.route||'blanket';sfx('thud',0.4);updateHud(true);showDialog('Aren',"The blanket holds over the barbs. Over, everyone.",3.5,'whisper');}};}};
+      return {label:'Outer fence',fn:()=>showDialog('Aren',"Dead wire now. I need cutters, or a blanket to throw over the barbs.",4,'whisper')};
+    case 'f':if(y!==8)return null;
+      if(G.has.blankets>0)return {label:'Throw a blanket over the wire and climb',fn:()=>{P.busy={t:0,time:3.2*slow(),label:'Climbing',done:()=>{grid[y][x]='c';G.has.blankets--;G.flags.inner=true;sfx('thud',0.4);updateHud(true);showDialog('Aren',"Barbs through the wool, but it holds. The others can climb where I did.",4,'whisper');}};}};
+      return {label:'Inner fence',fn:()=>showDialog('Aren',"Barbed wire, no current. A blanket thrown over it would let us climb. Or the gate card.",4,'whisper')};
     case 'p':return {label:'Slide the cell bolt',fn:()=>{grid[y][x]='d';computeFloor();sfx('click');for(const c of comps)if(c.state==='captured'){c.state='follow';say(c,c.lines.freed);}updateHud(true);}};
-    case 'u':{if(!night||x>7)return null;if(G.alarm>0||guards.some(g=>g.state==='chase'))return null;
+    case 'u':{if(!night||x>7||G.alarm>0||guards.some(g=>g.state==='chase')){
+        if(G.has.blankets>=2)return null;
+        return {label:'Take a blanket',fn:()=>{G.has.blankets++;sfx('pickup');showDialog('Aren',G.has.blankets===1?"A thin blanket under my shirt. Thrown over barbed wire, it might be enough to climb.":"A second blanket. One for each fence.",4,'whisper');updateHud(true);}};}
       return {label:'Sleep until dawn',fn:()=>{P.sleeping=true;G.ff=10;for(const c of comps)if(c.state==='follow')c.state='wait';showDialog('Aren',"Sleep. If it comes.",2.5,'whisper');}};}
   }
   return null;
@@ -1312,9 +1351,15 @@ function findInteract(){
     if(G.job==='east'){if(nearStain())consider(-1,{label:`Hold ${key}: scrub`,hold:true,fn:()=>{}});}
     else if(Math.hypot(P.x-J.spot.x,P.y-J.spot.y)<1.6)consider(-1,{label:`Hold ${key}: ${J.verb}`,hold:true,fn:()=>{}});
   }
+  // the tunnel under Block A
+  {const d=Math.hypot(P.x-DIG.x,P.y-DIG.y);
+    if(d<1.3&&G.tunnel<1)consider(d,{at:DIG,label:`Hold ${key}: dig the tunnel (${Math.floor(G.tunnel*100)}%)`,hold:true,fn:()=>{}});
+    else if(d<1.3)consider(d,{at:DIG,label:'Crawl into the tunnel',fn:()=>tunnelGo(TEXIT)});
+    const e=Math.hypot(P.x-TEXIT.x,P.y-TEXIT.y);if(G.tunnel>=1&&e<1.2&&!G.won)consider(e+0.3,{at:TEXIT,label:'Crawl back into the tunnel',fn:()=>tunnelGo(DIG)});}
   for(const c of comps){
     const d=dist(c,P);if(d>1.5)continue;
-    if(c.state==='day')consider(d,{at:c,label:`Whisper to ${c.name}`,fn:()=>{const line=c.recruited?c.lines.day:c.lines.dayRecruit;c.recruited=true;say(c,line,'whisper');showDialog(c.name,line,5,'whisper');updateHud(true);}});
+    if(c.state==='day'&&c.recruited)consider(d,{at:c,label:`Ask ${c.name} to come with you now`,fn:()=>{c.state='follow';c.path=null;const line=G.phase==='day'?"Now? In daylight? ...All right. Walk like you've been sent.":"Coming.";say(c,line,'whisper');showDialog(c.name,line,4,'whisper');updateHud(true);}});
+    else if(c.state==='day')consider(d,{at:c,label:`Whisper to ${c.name}`,fn:()=>{const line=c.recruited?c.lines.day:c.lines.dayRecruit;c.recruited=true;say(c,line,'whisper');showDialog(c.name,line,5,'whisper');updateHud(true);}});
     else if(c.state==='idle')consider(d,{at:c,label:`Talk to ${c.name}`,fn:()=>{c.state='follow';c.recruited=true;const k=speechKind(c);showDialog(c.name,c.lines.recruit,5.5,k);updateHud(true);}});
     else if(c.state==='follow')consider(d+1.6,{at:c,label:`Tell ${c.name} to wait`,fn:()=>{c.state='wait';say(c,"I'll stay low.");updateHud(true);}});
     else if(c.state==='wait')consider(d,{at:c,label:`Tell ${c.name} to follow`,fn:()=>{c.state='follow';say(c,'Right behind you.');updateHud(true);}});
@@ -1339,7 +1384,7 @@ function findInteract(){
   const px=Math.floor(P.x),py=Math.floor(P.y);
   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
     const x=px+dx,y=py+dy;if(!inb(x,y))continue;
-    const ch=grid[y][x];if(!'jwokgGFpu'.includes(ch))continue;
+    const ch=grid[y][x];if(!'jwokgGFfpu'.includes(ch))continue;
     const d=Math.hypot(x+.5-P.x,y+.5-P.y);if(d>1.45)continue;
     const o=tileAction(ch,x,y);if(o)consider(d,Object.assign({},o,{at:{x:x+.5,y:y+.5}}));
   }
@@ -1361,7 +1406,9 @@ function powerOff(){
   setTiles('g','q');
   queueDialog('hint','The camp is dark. Lamps and searchlights are off and the outer fence is dead until morning. Guards no longer order anyone inside: if they see you, they chase.',6);
   for(const g of guards)if(g.state==='patrol'&&Math.random()<.6){g.shoutT=0.5+Math.random()*2;}
-  const g0=guards.find(g=>g.state!=='ko');if(g0)say(g0,'Who killed the lights?!');
+  const g0=guards.find(g=>g.state!=='ko');if(g0)say(g0,G.phase==='day'?'The fence is dead! Sirens!':'Who killed the lights?!');
+  if(G.phase==='day'){G.alarm=Math.max(G.alarm,40);G.sirenT=11;for(const g of guards)if(g.state!=='ko'){g.shoutT=0.3+Math.random();if(g.state==='patrol'){g.state='suspicious';g.lastSeen={x:15,y:12};g.lookT=8;g.susp=0.6;}}
+    queueDialog('hint',"In daylight the dead fence is noticed at once. Sirens. Every guard is looking now: be quick, or be inside.",6);}
   updateHud(true);
 }
 
@@ -1380,6 +1427,8 @@ function endGame(kind){
     stamp.textContent='Escaped';
     document.getElementById('endTitle').textContent=n===3?'Four of you reach the trees.':n===0?'You run into the trees alone.':`You reach the trees with ${out.map(c=>c.name).join(' and ')}.`;
     let txt=n===3?'Behind you Grauhof is still dark and the chimney is still smoking. The morning roll call will find four empty bunks. You will tell the world what the East Block is for.':n===0?'Freedom smells of pine and rain, and of everyone you left behind. You promise yourself you will tell people what happens behind that wire.':`You carry ${left.join(' and ')}'s names with you. Someone outside has to know.`;
+    const how={tunnel:' You came up through the tunnel you dug with your hands, under their wire.',blanket:' The blanket is still hanging on the barbs behind you.',wire:''}[G.route]||'';
+    txt+=how+(G.phase==='day'?' You went in broad daylight, with the sirens screaming.':'');
     if(G.found.length)txt+=` In your pocket: ${G.found.join(', ')}.`;
     document.getElementById('endText').textContent=txt;
   }else{
@@ -1396,13 +1445,12 @@ function endGame(kind){
 function objectives(){
   const n=comps.filter(c=>c.recruited&&!c.lost).length;
   return [
-    [`Find Mira, Tomas and Bram (${n}/3)`,n===3],
-    ['Get the wire cutters (workshop by day, or Bram at night)',G.has.cutters],
-    ['Get the gate keycard (office by day, or Mira at night)',G.has.keycard],
-    ['At night, kill the power (Tomas, or the East breaker)',!G.power],
-    ['Open the inner gate',G.flags.gate],
-    ['Cut through the outer fence',G.flags.fence],
-    ['Reach the forest together',G.won]
+    ['The wire: kill the power (Tomas, or the East breaker)',!G.power||G.flags.fence],
+    ['  …past the inner fence (gate keycard, or a blanket over the barbs)',G.flags.gate||G.flags.inner||G.flags.fence],
+    ['  …over the outer fence (wire cutters, or a blanket)',G.flags.fence],
+    [`Or the tunnel under Block A (${Math.floor(G.tunnel*100)}% dug)`,G.tunnel>=1,true],
+    [`Optional: bring Mira, Tomas and Bram (${n}/3)`,n===3,true],
+    ['Reach the trees',G.won]
   ];
 }
 const STATUS={idle:'Not found',day:'At work',follow:'Following',wait:'Waiting',work:'Working',captured:'Captured',lost:'Taken east',escaped:'Free',gone:'—'};
@@ -1424,13 +1472,14 @@ function updateHud(force){
   if(!force&&key===G.hudKey)return;G.hudKey=key;
   const ul=document.getElementById('objs');ul.innerHTML='';
   let next=null;
-  for(const [t,d] of objectives()){const li=document.createElement('li');li.textContent=t;if(d)li.className='done';else if(!next){li.className='next';next=t;}ul.appendChild(li);}
+  for(const [t,d,opt] of objectives()){const li=document.createElement('li');li.textContent=t.trim();if(t.startsWith('  '))li.style.paddingLeft='12px';if(d)li.className='done';else if(!next&&!opt){li.className='next';next=t.trim().replace(/^…/,'');}ul.appendChild(li);}
   let nx='';
-  if(G.phase==='day'&&G.job){const J=JOBS[G.job];nx=G.shiftDone?'Work done. Wait for the evening bell.':`Work: ${J.name} · ${Math.round(G.shift*100)}%`;}
+  if(G.phase==='day'&&G.skipped)nx='No work today · stay out of sight';
+  else if(G.phase==='day'&&G.job){const J=JOBS[G.job];nx=G.shiftDone?'Work done. Wait for the evening bell.':`Work: ${J.name} · ${Math.round(G.shift*100)}%`;}
   else if(G.phase==='line')nx='';
   else nx=next?'Next: '+next:'';
   document.getElementById('next').textContent=nx;
-  const inv=[];if(G.has.cutters)inv.push('wire cutters');if(G.has.keycard)inv.push('gate keycard');if(G.scraps)inv.push(`${G.scraps} scrap${G.scraps>1?'s':''} of meat`);if(G.breaker)inv.push('knows the breaker');if(G.scent)inv.push('dogs know your scent');
+  const inv=[];if(G.has.cutters)inv.push('wire cutters');if(G.has.keycard)inv.push('gate keycard');if(G.has.blankets)inv.push(`${G.has.blankets} blanket${G.has.blankets>1?'s':''}`);if(G.scraps)inv.push(`${G.scraps} scrap${G.scraps>1?'s':''} of meat`);if(G.breaker)inv.push('knows the breaker');if(G.scent)inv.push('dogs know your scent');
   document.getElementById('inv').textContent=inv.length?'Carrying: '+inv.join(' · '):'';
   const cr=document.getElementById('crew');cr.innerHTML='';
   for(const c of comps){const a=document.createElement('span');a.textContent=c.name;a.title=c.skill;const b=document.createElement('span');
@@ -2123,6 +2172,14 @@ function render(){
   curIt=(running&&!paused&&!P.busy&&!P.inLine&&G.phase!=='pick')?findInteract():null;
   if(curIt&&curIt.at){const p=iso(curIt.at.x,curIt.at.y);const r=15+Math.sin(G.time*5)*1.5;ctx.strokeStyle='rgba(240,174,60,.55)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(p[0],p[1],r*1.5,r*0.75,0,0,7);ctx.stroke();}
   updateGuide(frameDt);drawGuideTrail();
+  // the tunnel: a lifted floorboard and a hole in Block A, and where it comes up beyond the wire
+  if(G.tunnel>0){const p=iso(DIG.x,DIG.y),r=5+11*G.tunnel;
+    ctx.fillStyle='rgba(92,70,48,.9)';ctx.beginPath();ctx.ellipse(p[0]+r*1.5,p[1]+3,r*0.9,r*0.4,0,0,7);ctx.fill();
+    ctx.fillStyle='#120d09';ctx.beginPath();ctx.ellipse(p[0],p[1],r*1.6,r*0.8,0,0,7);ctx.fill();
+    ctx.strokeStyle='rgba(60,40,26,.9)';ctx.lineWidth=1.5;ctx.stroke();
+    const b0=iso(DIG.x-0.45,DIG.y+0.15,0.05),b1=iso(DIG.x+0.1,DIG.y-0.45,0.05);ctx.strokeStyle='#8a6440';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(b0[0],b0[1]-10);ctx.lineTo(b1[0],b1[1]-10);ctx.stroke();}
+  if(G.tunnel>=1){const p=iso(TEXIT.x,TEXIT.y);ctx.fillStyle='rgba(100,80,56,.95)';ctx.beginPath();ctx.ellipse(p[0]+10,p[1]+4,22,9,0,0,7);ctx.fill();
+    ctx.fillStyle='#120d09';ctx.beginPath();ctx.ellipse(p[0],p[1],16,8,0,0,7);ctx.fill();}
   // job marker
   if(G.phase==='day'&&G.job&&!G.shiftDone){
     const sp=G.job==='east'?(pInside?null:{x:37.5,y:15.2}):JOBS[G.job].spot;
@@ -2294,7 +2351,7 @@ function step(dt){
   if(G.fade>0)G.fade-=dt;
   if(G.shake>0)G.shake=Math.max(0,G.shake-dt);
   updatePlayer(dt);
-  updateWork(dt);
+  updateWork(dt);updateDig(dt);
   for(const c of comps)if(c.state!=='lost'&&c.state!=='gone')updateComp(c,dt);
   for(const n of G.npcs)updateNpc(n,dt);
   for(const n of G.detail){if(n.bubble){n.bubble.t-=dt;if(n.bubble.t<=0)n.bubble=null;}n.talkT-=dt;if(n.talkT<=0){n.talkT=12+Math.random()*10;if(pInside&&!n.bubble)say(n,pick(n.lines),'whisper');}}

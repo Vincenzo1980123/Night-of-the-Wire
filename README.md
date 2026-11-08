@@ -28,6 +28,15 @@ Open `index.html` in a browser. There's nothing to build or install.
 - **Selection:** after the fifth night, Block A is selected. If you've only worked and never escaped, you end up in the line anyway. Five full days played without skipping take about 30 minutes; finishing work early or sleeping through a night makes the time pass faster.
 - **Friends:** friends still in the cells at dawn are taken east and are gone for good.
 
+## Your own way out
+Grauhof is open: there's no fixed order and no required route.
+- **Work is optional.** At roll call you can *slip away* instead of taking a job. The barracks stay safe, but any guard who spots you idle in the yard gives you five seconds, then beats you back inside. At the evening count you take +6 Weight.
+- **Through the wire:** kill the power (Tomas, or the breaker the East detail shows you), get past the inner fence (gate keycard, or a blanket over the barbs), then the outer fence (wire cutters, or a blanket).
+- **Under it:** dig a tunnel under the bunks in Block A, in a skipped day or at night. It takes about two and a half minutes of digging, and less with Bram helping. Each morning there's a chance the inspection finds it and fills it in.
+- **In daylight:** every action works by day too, but a dead fence in daylight sets off the sirens at once.
+- **Friends are optional.** Recruit Mira, Tomas and Bram and bring them, ask them to come with you even in daylight, or go alone. The ending reflects who made it, how and when.
+- Blankets come from the bunks (up to two). The "Ways out" panel tracks every route.
+
 ## Visual style
 The look is mid-1990s European isometric 3D adventure games: polygonal characters walking through a hand-painted miniature world. All designs are original.
 - **Characters:** real-time low-poly 3D figures with soft Gouraud shading in stepped palette ramps, lit from a single direction. Heads are sculpted ovals with individual faces: nose, set-in eyes with lids, brows, mouth, ears, age lines, hair, beards and glasses vary per person, and every prisoner and guard gets a slightly different face. Aren is bald with a goatee; Bram is heavier, darker and fully bearded; Tomas is grey with glasses; Mira wears her hair in a bun and a red scarf. Posture shows state: prisoners stoop, the people in the line walk with their heads bowed, guards stand upright. Poses blend smoothly between standing, walking, running, sneaking, sitting, kneeling to scrub and lying down.
