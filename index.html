@@ -83,15 +83,17 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 #prompt b{font-weight:700;color:var(--sodium);margin-right:8px;letter-spacing:.12em;font-size:11px}
 #prompt.hold b{color:var(--wire)}
 #subs{display:flex;flex-direction:column;gap:3px;align-items:center;width:100%}
-.sub{max-width:100%;text-align:center;font-size:15.5px;line-height:1.35;color:var(--ink);text-shadow:0 1px 2px #000;background:rgba(5,7,11,.62);padding:4px 10px;border-radius:2px;transition:opacity .35s}
+.sub{max-width:100%;text-align:center;font-size:14.5px;line-height:1.3;color:var(--ink);text-shadow:0 1px 2px #000;background:rgba(5,7,11,.5);padding:3px 9px;border-radius:2px;transition:opacity .35s}
+#lower{transition:opacity .25s}
+#lower.dim{opacity:.28}
 .sub .who{font:12px var(--f-display);letter-spacing:.05em;margin-right:7px;color:var(--sodium)}
 .sub.whisper .tx{font-style:italic;color:rgba(236,228,207,.85)}
 .sub.whisper .who{color:#c9bf9f}
 .sub.shout .who{color:var(--alarm)}
 .sub.shout .tx{font-weight:700;color:#ffd9cc}
-.sub.hint{background:rgba(10,20,32,.8);border-left:2px solid var(--wire);text-align:left}
+.sub.hint{background:rgba(10,20,32,.62);border-left:2px solid var(--wire);text-align:left;font-size:13.5px;max-width:560px}
 .sub.hint .who{color:var(--wire)}
-.sub.amb{font-size:14px}
+.sub.amb{font-size:12.5px;opacity:.85}
 .sub.out{opacity:0}
 .screen{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-start;justify-content:center;background:radial-gradient(ellipse at 50% 35%,rgba(240,174,60,.10),transparent 60%),rgba(5,7,11,.93);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(24px + env(safe-area-inset-top,0px)) calc(24px + env(safe-area-inset-bottom,0px));overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y}
 .sheet{max-width:640px;width:100%;display:flex;flex-direction:column;gap:16px;margin-block:auto}
@@ -143,7 +145,7 @@ body.touch .mode{display:none}
   #crew .st{font-size:9.5px;padding:1px 4px}
   .mode,.iconbtn{padding:10px 8px;font-size:11px}
   .meter .bar{width:100px}
-  .sub{font-size:14px}.sub.amb{font-size:13px}
+  .sub{font-size:13px}.sub.amb{font-size:12px}.sub.hint{font-size:12.5px}
   #next{font-size:12.5px;max-width:200px}
   #banner{font-size:16px;letter-spacing:.2em;top:calc(64px + env(safe-area-inset-top,0px))}
 }
@@ -153,7 +155,7 @@ body.touch .mode{display:none}
 @media (max-height:520px){
   #tr{width:128px}
   body.touch #lower{bottom:calc(8px + env(safe-area-inset-bottom,0px));width:min(440px,calc(100vw - 390px));min-width:240px}
-  body.touch .sub{font-size:13px}
+  body.touch .sub{font-size:12.5px}
   #stick{bottom:calc(16px + env(safe-area-inset-bottom,0px))}
   .tb{width:56px;height:56px}.tb.big{width:72px;height:72px}
   #tbtns{bottom:calc(12px + env(safe-area-inset-bottom,0px))}
@@ -252,7 +254,7 @@ body.touch .mode{display:none}
       <kbd>Weight</kbd><span>What the work does to you. High Weight shortens your breath and slows your hands.</span>
       <kbd>Chances</kbd><span>The first two times you're caught, you're thrown back in the barrack. The third time, you are put in the line.</span>
     </div>
-    <div class="row"><button class="btn" id="resumeBtn" type="button">Resume</button><button class="btn ghost" id="soundBtn" type="button">Sound on</button><button class="btn ghost" id="restartBtn" type="button">Restart</button></div>
+    <div class="row"><button class="btn" id="resumeBtn" type="button">Resume</button><button class="btn ghost" id="soundBtn" type="button">Sound on</button><button class="btn ghost" id="chatterBtn" type="button">Chatter: nearby only</button><button class="btn ghost" id="restartBtn" type="button">Restart</button></div>
   </div>
 </div>
 
@@ -779,6 +781,9 @@ function speechKind(e){
   return zoneAt(e.x,e.y)==='safe'?'talk':'whisper';
 }
 function onScreenWorld(e){const p=iso(e.x,e.y,1);const x=VW/2+(p[0]-G.camX)*SC,y=VH/2+(p[1]-G.camY)*SC;return x>-20&&x<VW+20&&y>-20&&y<VH+20;}
+let CHATTER=(()=>{try{return localStorage.getItem('grauhof.chatter')||'near';}catch(e){return 'near';}})();
+const CHATTER_LABEL={near:'Chatter: nearby only',all:'Chatter: all',off:'Chatter: off'};
+function cycleChatter(){CHATTER=CHATTER==='near'?'off':CHATTER==='off'?'all':'near';try{localStorage.setItem('grauhof.chatter',CHATTER);}catch(e){}document.getElementById('chatterBtn').textContent=CHATTER_LABEL[CHATTER];}
 function say(e,text,kind,t){
   kind=kind||speechKind(e);
   t=t||Math.min(6.5,2.2+text.length*0.05);
@@ -788,9 +793,12 @@ function say(e,text,kind,t){
   if(e.isDog){if(d<12&&G.time-(G.lastBark??-9)>2.5){G.lastBark=G.time;sfx('bark',1-d/13);}return;}
   const ear=kind==='shout'?9:kind==='talk'?7:5;
   if(d>ear||!onScreenWorld(e))return;
+  // only speech meant for Aren gets text by default; background chatter stays a small mark above the speaker
+  const toMe=e.isComp||(e.isGuard&&(e.warnT!=null||e.state==='chase'||(e.state==='suspicious'&&e.lastSeen&&Math.hypot(e.lastSeen.x-P.x,e.lastSeen.y-P.y)<3)));
+  if(!toMe){if(CHATTER==='off')return;if(CHATTER==='near'&&(d>3.2||G.time-(G.lastAmb??-9)<7))return;}
   if(!e.isComp&&G.time-(G.lastAmb??-9)<1.8)return;
   const who=e.isGuard?`Guard ${e.name}`:e.name;
-  if(addSub(who,text,kind,Math.min(5,3+text.length*0.03),1)){
+  if(addSub(who,text,kind,toMe?Math.min(4.5,2.6+text.length*0.03):Math.min(3.4,2+text.length*0.025),1)){
     G.lastAmb=G.time;
     if(kind==='shout'&&G.time-(G.lastShoutCue??-9)>3){G.lastShoutCue=G.time;sfx('shout',0.55*(1-d/10));}
   }
@@ -801,6 +809,7 @@ function addSub(who,text,kind,dur,pri){
   let s=who!=='hint'?G.subs.find(x=>x.who===who):null;
   if(s&&s.pri>pri)return false;
   if(!s){
+    if(pri===1&&G.subs.some(x=>x.pri===1&&x.who!==who)){const v=G.subs.find(x=>x.pri===1);removeSub(v);}
     if(G.subs.length>=2){const victim=G.subs.find(x=>x.pri===1)||(pri===2?G.subs[0]:null);if(!victim)return false;removeSub(victim);}
     s={who,el:document.createElement('div')};G.subs.push(s);box.appendChild(s.el);
   }
@@ -2401,6 +2410,10 @@ function render(){
   if(P.busy){const [x,y]=toScreen(P.x,P.y,2.3);bar(x,y,P.busy.t/P.busy.time,P.busy.label);}
   if(P.working){const [x,y]=toScreen(P.x,P.y,2.1);if(G.job==='east'){const s=nearStain();if(s)bar(x,y,1-s.a,'Scrubbing');}else bar(x,y,G.shift,'Working');}
   updatePrompt(curIt);
+  {const el=document.getElementById('lower'),r=el.getBoundingClientRect();let hit=false;
+    if(r.height>4&&G.subs.length)for(const e of [P,...comps.filter(c=>c.state==='follow'||c.state==='work'),...G.npcs,...guards].slice(0,12)){if(e!==P&&dist(e,P)>4)continue;
+      const [x0,yb]=toScreen(e.x,e.y,0),[,yt]=toScreen(e.x,e.y,2.1),hw=16*SC;if(x0+hw>r.left&&x0-hw<r.right&&yb>r.top&&yt<r.bottom){hit=true;break;}}
+    el.classList.toggle('dim',hit);}
   if(P.sleeping){ctx.fillStyle='rgba(2,3,8,.55)';ctx.fillRect(0,0,VW,VH);ctx.font='28px "Special Elite",monospace';ctx.fillStyle='rgba(236,228,207,.7)';ctx.fillText('Sleeping…',VW/2,VH*0.35);}
   if(G.fade>0){ctx.fillStyle=`rgba(40,4,4,${Math.min(1,G.fade)*0.85})`;ctx.fillRect(0,0,VW,VH);ctx.font='48px "Special Elite",monospace';ctx.fillStyle=`rgba(236,228,207,${Math.min(1,G.fade)})`;ctx.fillText(G.fadeMsg,VW/2,VH/2);}
   if(G.fadeOut>0){ctx.fillStyle=`rgba(0,0,0,${G.fadeOut})`;ctx.fillRect(0,0,VW,VH);}
@@ -2512,6 +2525,7 @@ function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').text
 document.getElementById('pauseBtn').onclick=()=>togglePause();
 document.getElementById('resumeBtn').onclick=()=>togglePause();
 document.getElementById('soundBtn').onclick=()=>toggleSound();
+document.getElementById('chatterBtn').onclick=()=>cycleChatter();document.getElementById('chatterBtn').textContent=CHATTER_LABEL[CHATTER];
 document.getElementById('restartBtn').onclick=()=>{paused=false;document.getElementById('sPause').hidden=true;startGame();};
 document.getElementById('againBtn').onclick=()=>{document.getElementById('sEnd').hidden=true;startGame();};
 document.getElementById('startBtn').onclick=()=>{document.getElementById('sTitle').hidden=true;startGame();};
