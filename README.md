@@ -69,3 +69,7 @@ The look is mid-1990s European isometric 3D adventure games: polygonal character
 - **Less text on screen:** by default only speech meant for Aren gets subtitles: friends, guards warning or chasing you, people you talk to. Background chatter is subtitled only from people right beside you, at most one line every few seconds; otherwise a small mark above the speaker shows who's talking. Pause menu → *Chatter*: nearby only / off / all. Subtitles are compact and turn see-through whenever they overlap Aren or the people near him.
 - **Subtitles:** speech appears as film-style subtitles at the bottom, at most two lines at once, and only from people within earshot. Above a character's head there's only a small marker showing who is talking: dots for whispers, a red mark for shouts.
 - **Action prompt:** sits just above the subtitles, with a faint ring on the floor under whatever it refers to.
+
+## Audio credits
+- `audio/alte-kameraden.mp3`: "Alte Kameraden" (Carl Teike, 1889), historical 78 rpm shellac recording by the Anker-Orchester (Anker 5387-10815), from the CC0-CH collection on Wikimedia Commons (File:Anker-5387-10815.ogg), public domain / CC0. Converted to mono MP3 and loudness-normalised.
+- All other music and sounds are synthesised in the browser and original to this game.
