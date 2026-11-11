@@ -41,9 +41,13 @@ A working day lasts about 8 minutes (06:00 to 18:00). Nights last 3½ minutes.
 
 ## Ways out
 There's no fixed order and no required route.
-- **Through the wire:** kill the power (Tomas, or the breaker the East detail shows you). Then cut or climb the dead outer fence: **north** of the camp, or **south by the railway**.
+- **Through the wire:** kill the power, then cut or climb the dead outer fence: **north** of the camp, or **south by the railway**.
+  - The power house is padlocked. The key hangs on the key board in the guardhouse, at the far south end of the camp.
+  - A guard, Calder, is posted at the power-house door. Knock him out from behind at night: he sweeps his gaze, so time it.
+  - Inside, Tomas kills the generator *and* the backup: dark until morning. Pulling the breaker yourself (the East detail shows you which) only buys about **70 seconds** before the backup generator restarts the lights and the fence current.
+  - Either way the two nearest guards come to check on the power house.
   - South of the fence, slip past the ramp guard, behind the train and across the tracks into the forest.
-  - You need the wire cutters, or a blanket thrown over the barbs. There are only two blankets, on the linen shelf in the infirmary at the far south.
+  - You need the wire cutters, or a blanket thrown over the barbs. There are only two blankets, on the linen shelf in the infirmary at the far south. Climbing over a blanket is slow (6 seconds) and noisy: guards nearby hear it.
 - **Through the main gate:** the gate keycard (guard office job, or Mira at night) opens the main gate in the north fence, but only while the power is on: its lock is electric.
 - **Under it:** dig a tunnel under the bunks in Block A, on a skipped day or at night. Each morning's inspection may find it and fill it in.
 - **Work is optional.** At roll call you can *slip away*. The barracks stay safe, but guards who spot you idle in the yard beat you back inside, and the evening count costs +6 Weight.
