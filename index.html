@@ -44,6 +44,12 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 .meter .bar i{display:block;height:100%;width:0;background:var(--ink);transition:width .2s linear}
 #stamina.tired .bar i{background:var(--alarm)}
 #weight .bar i{background:linear-gradient(90deg,#9a8f7a,#b4483a)}
+#health .bar i{background:#8fb87a}#health.low .bar i{background:#e04a3a}#health.low span:first-child{color:#e04a3a}
+#next{background:rgba(5,7,11,.55);border-left:2px solid var(--sodium);padding:4px 8px;border-radius:2px}#next:empty{display:none}
+#next b{display:block;font:600 10.5px var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:#c9bf9f;margin-bottom:1px}
+#objs li{flex-wrap:wrap}#objs li>.t{flex:1 1 0;min-width:0}
+#objs .req{flex:0 0 100%;padding-left:16px;font-size:11.5px;color:var(--dim);margin-top:1px;line-height:1.35}
+body.touch #objs .req{font-size:10.5px}#objs .req .y{color:var(--ok)}#objs .req .n{color:#d98a6a}
 #chances{font:13px var(--f-display);color:var(--dim);letter-spacing:.04em}
 #chances span{color:var(--ink)}
 #zone{font:600 11px var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
@@ -56,6 +62,7 @@ body.touch #mini{width:auto;max-width:100%;max-height:min(118px,16vh);margin:0 a
 .lbl{font:600 11px var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:6px}
 #tasksBtn{pointer-events:auto;cursor:pointer;background:none;border:1px solid var(--edge);color:var(--ink);font:inherit;letter-spacing:inherit;padding:4px 7px;border-radius:2px;touch-action:manipulation}
 #tr.collapsed .tasks{display:none}
+body.touch #tr .tasks{max-height:34vh;overflow-y:auto;pointer-events:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 #objs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:14px;line-height:1.25}
 #objs li{display:flex;gap:7px;color:var(--ink)}
 #objs li::before{content:"";flex:0 0 9px;height:9px;margin-top:4px;border:1px solid var(--dim);border-radius:1px}
@@ -177,6 +184,7 @@ body.touch .mode{display:none}
   </div>
   <div id="clock">Day 1 · 06:00</div>
   <div class="meter" id="stamina"><span>Breath</span><span class="bar"><i></i></span></div>
+  <div class="meter" id="health"><span>Health</span><span class="bar"><i></i></span></div>
   <div class="meter" id="weight"><span>Weight</span><span class="bar"><i></i></span></div>
   <div id="zone">Barrack · safe</div>
   <div id="chances">Chances <span>●●●</span></div>
@@ -497,7 +505,7 @@ function newGame(){
     if(c==='L')LAMPS.push({x:x+.5,y:y+.5});
   }
   G={time:0,day:1,phase:'pick',clock:0,ff:1,job:null,shift:0,shiftDone:false,burden:0,scent:false,armband:false,breaker:false,scraps:0,eastShifts:0,found:[],stains:[],detail:[],eastOpen:false,
-     power:true,alarm:0,lives:3,caught:0,has:{cutters:false,keycard:false,blankets:0,rifle:false,ether:false},ammo:0,rack:2,linen:2,flashes:[],tunnel:0,goal:null,blanketAt:{},skipped:false,route:null,
+     power:true,alarm:0,lives:3,caught:0,health:100,healedDay:0,hurt:0,has:{cutters:false,keycard:false,blankets:0,rifle:false,ether:false},ammo:0,rack:2,linen:2,flashes:[],tunnel:0,goal:null,blanketAt:{},skipped:false,route:null,
      flags:{beam:false,office:false,gate:false,fence:false,inner:false},won:false,over:false,fade:0,fadeMsg:'',fadeOut:0,
      spotCd:[0,0,0,0,0,0],start:spawns.S,compHome:{mira:spawns.m,tomas:spawns.t,bram:spawns.b},dialogQ:[],dlg:null,hudKey:'',outside:false,leaveHinted:false,shake:0,
      alarmEvT:85,queue:{active:false,npcs:[],nextT:24,count:0},doorOpen:false,
@@ -1344,12 +1352,23 @@ function capture(t,by){
   showDialog(t.name,t.lines.caught,4.5,'whisper');sfx('thud',0.8);
   updateHud(true);
 }
+function hurt(n,why){
+  G.health=Math.max(0,G.health-n);G.hurt=Math.min(1,(G.hurt||0)+n/40);G.shake=Math.max(G.shake,0.3);sfx('thud',0.5);
+  if(G.health<=0){G.collapsed=true;if(why==='shot')G.shotNext=true;playerCaught();return true;}
+  if(G.health<35&&!G.hints.health){G.hints.health=true;queueDialog('hint',"You're badly hurt: slower, and short of breath. Rest in a barrack at night, or ask Doktor Lamm in the Lazarett to treat you.",6);}
+  updateHud(true);return false;
+}
+function updateHealth(dt){
+  G.hurt=Math.max(0,(G.hurt||0)-dt*0.8);
+  const rest=zoneAt(P.x,P.y)==='safe'&&isNight(),rate=P.sleeping?0.25:rest?0.1:0.035;
+  G.health=Math.min(100,G.health+rate*dt);
+}
 function playerCaught(){
   if(G.has.rifle){G.has.rifle=false;G.ammo=0;}
   G.lives--;G.caught++;G.shake=0.6;
   sfx('thud',1.2);
   if(G.lives<=0){startLine('caught');return;}
-  G.fade=1.6;G.fadeMsg=G.shotNext?'Shot':'Caught';G.shotNext=false;
+  G.fade=1.6;G.fadeMsg=G.shotNext?'Shot':G.collapsed?'Collapsed':'Caught';G.health=G.health<=0?40:Math.max(15,G.health-25);G.shotNext=false;G.collapsed=false;
   P.x=G.start.x;P.y=G.start.y;P.busy=null;P.dir=Math.PI*1.25;P.sleeping=false;G.ff=1;
   let i=0;
   for(const c of comps)if(c.state==='follow'||c.state==='wait'||c.state==='work'){c.state='follow';c.work=null;c.x=G.start.x+(i%2?1:-1)*1.2;c.y=G.start.y+0.8*(i>1?-1:1);c.path=null;i++;}
@@ -1362,7 +1381,7 @@ function playerCaught(){
 function dayBeating(g){
   g.warnT=null;g.state='return';g.susp=0;g.path=null;
   say(g,pick(["Work, or die where you stand!","Next time it's the East line, number!"]));
-  G.shift=Math.max(0,G.shift-0.25);G.burden=Math.min(100,G.burden+4);
+  G.shift=Math.max(0,G.shift-0.25);G.burden=Math.min(100,G.burden+4);G.health=Math.max(10,G.health-15);
   if(!G.job){P.x=G.start.x;P.y=G.start.y;}else if(G.job==='east'){P.x=37.5;P.y=15.6;}else{const s=JOBS[G.job].spot;P.x=s.x;P.y=s.y;}
   P.busy=null;G.fade=1.2;G.fadeMsg='Beaten';G.shake=0.4;
   showDialog('Aren',G.job?"They beat me and dragged me back to work. Keep your head down. Just work.":"They beat me and threw me back into the barrack. Stay out of the open.",4,'whisper');
@@ -1373,7 +1392,7 @@ function effMode(){
   if(P.mode===2||keys['shift'])return P.tired?0:2;
   return P.mode;
 }
-const maxStamina=()=>100-Math.max(0,G.burden-30)*0.6;
+const maxStamina=()=>Math.max(25,100-Math.max(0,G.burden-30)*0.6-Math.max(0,50-G.health)*0.8);
 function updatePlayer(dt){
   let ix=0,iy=0;
   if(keys['arrowleft']||keys['a'])ix-=1;if(keys['arrowright']||keys['d'])ix+=1;
@@ -1392,7 +1411,7 @@ function updatePlayer(dt){
     if(P.busy)P.busy=null;
     if(P.sleeping){P.sleeping=false;G.ff=1;}
     wx/=l;wy/=l;
-    const sp=[2.5,1.25,4.2][m]*(touchVec.on?Math.max(0.45,mag):1);
+    const sp=[2.5,1.25,4.2][m]*(touchVec.on?Math.max(0.45,mag):1)*(G.health<35?0.8:1);
     const moved=moveE(P,wx*sp,wy*sp,dt,walkP);
     turnTo(P,Math.atan2(wy,wx),12,dt);
     P.moving=moved>0.0005;P.anim+=dt*sp*4.2;
@@ -1719,6 +1738,8 @@ function tileAction(ch,x,y){
   return null;
 }
 function npcTalk(n){
+  if(n.id==='lamm'&&G.health<90&&G.healedDay!==G.day){G.healedDay=G.day;const before=G.health;G.health=Math.min(100,G.health+35);n.dir=Math.atan2(P.y-n.y,P.x-n.x);
+    const line="Sit. Don't make a sound. ...There. Clean it every night if you can, and don't let them see you limp.";say(n,line,'whisper');showDialog(n.name,line,5,'whisper');queueDialog('hint',`Doktor Lamm treated you (health ${Math.round(before)} → ${Math.round(G.health)}). He can do it once a day.`,4);updateHud(true);return;}
   let kind=n.isQueue?'whisper':speechKind(n);
   let line;
   if(n.isQueue)line=pick(QUEUE_REPLY);
@@ -1835,7 +1856,7 @@ function fireRifle(g){
 function guardFires(g,t){
   gunshot(g.x,g.y,0.9);G.flashes.push({x:g.x,y:g.y,dir:g.dir,t:0.09});g.aimT=0;
   const d=dist(g,t),p_=Math.max(0.25,0.75-d*0.06);
-  if(t===P&&Math.random()<p_){G.shotNext=true;showDialog('Aren',"Hit. The ground came up. Hands dragged me back by the collar.",4.5,'whisper');capture(P,g);}
+  if(t===P&&Math.random()<p_){const down=hurt(45,'shot');if(down)showDialog('Aren',"Hit. The ground came up. Hands dragged me back by the collar.",4.5,'whisper');else showDialog('Aren',pick(["Hit. My arm. Keep moving, keep moving.","It burns. I'm still standing. Get out of his sight."]),3.5,'whisper');}
 }
 function pushIntoPit(g){
   g.fall={t:0,x0:g.x,y0:g.y};g.state='ko';g.koT=1e9;g.gone=true;g.susp=0;g.warnT=null;g.path=null;g.bubble=null;
@@ -1894,6 +1915,42 @@ function endGame(kind){
 }
 
 /* ================= HUD ================= */
+const CHK=b=>b?'<span class="y">✓</span>':'<span class="n">✗</span>';
+function whereIs(x,y){const r=roomAt(x,y);if(r&&r.name)return r.name.length===1?'Block '+r.name:r.name[0].toUpperCase()+r.name.slice(1);if(Math.hypot(x-JOBS.laundry.spot.x,y-JOBS.laundry.spot.y)<3)return 'the water basin';if(y>=28)return 'the south section';if(Math.hypot(x-10.5,y-17)<2.5)return 'the kitchen crates';return 'the yard';}
+function requirements(k){
+  const c=id=>comps.find(o=>o.id===id),rec=id=>{const o=c(id);return o&&o.recruited&&!o.lost;};
+  switch(k){
+    case 'power':return `${CHK(rec('tomas'))} Tomas found · ${CHK(G.breaker)} breaker known (East Block job)`;
+    case 'outer':return `${CHK(G.has.cutters)} wire cutters (workshop job, or Bram at night) · ${CHK(G.has.blankets>0)} blanket (Lazarett shelf, ${G.linen} left)`;
+    case 'gate':return `${CHK(G.has.keycard)} keycard (guard office job, or Mira at night) · ${CHK(G.power)} power on`;
+    case 'tunnel':return `${CHK(G.tunnel>=1)} dug ${Math.floor(G.tunnel*100)}% · under the bunk in Block A`;
+    case 'friends':return ['mira','tomas','bram'].map(id=>{const o=c(id);return `${CHK(rec(id))} ${o.name}${o.lost?' (taken east)':''}`;}).join(' · ');
+  }
+  return '';
+}
+// one concrete instruction: what to do right now, and where
+function nextStep(){
+  if(!G||G.phase==='pick'||G.phase==='line'||G.over)return '';
+  if(G.phase==='day'&&G.skipped)return 'No work today. Stay out of sight in the yard.';
+  if(G.phase==='day'&&G.job&&!G.shiftDone)return `Work: ${JOBS[G.job].name} · ${Math.round(G.shift*100)}%. Hold ${isTouch()?'ACT':'E'} at the marked spot.`;
+  if(G.health<35)return 'You\'re badly hurt. Rest in a barrack, or let Doktor Lamm in the Lazarett treat you.';
+  if(G.phase==='night'&&G.clock>NIGHT_LEN-35&&zoneAt(P.x,P.y)!=='safe'&&P.y>=4)return 'Dawn is coming. Get into a barrack before roll call.';
+  const c=id=>comps.find(o=>o.id===id),k=guideKey();
+  switch(k){
+    case 'power':{if(G.breaker||compNear('tomas'))return 'Kill the power: the generator in the power house.'+(isNight()?'':' In daylight this sets off the siren.');
+      const t=c('tomas');if(t.recruited&&!t.lost)return isNight()?`Bring Tomas to the power house (he's in ${whereIs(t.x,t.y)}).`:'Tomas will join you after lights out. Then go to the power house.';
+      return `Find Tomas (${isNight()?'he\'s in '+whereIs(t.x,t.y):'at the workshop by day'}), or do the East Block job to learn the breaker.`;}
+    case 'outer':if(G.has.cutters)return 'Cut through the dead outer fence, north of the camp.';if(G.has.blankets>0)return 'Throw a blanket over the dead outer fence and climb it, north of the camp.';
+      return `Get wire cutters (workshop job, or Bram at night) or a blanket (Lazarett shelf${G.linen?'':', now empty'}).`;
+    case 'gate':if(!G.has.keycard)return 'Get the gate keycard: the guard office job, or Mira picks the office lock at night.';
+      return G.power?'Open the main gate with the keycard, north of the camp. The searchlights are on: stay out of them.':'The gate lock needs power. Use the fence tonight, or try the gate tomorrow.';
+    case 'tunnel':if(G.tunnel<1)return `Dig the tunnel under the bunk in Block A (${Math.floor(G.tunnel*100)}%).`;return P.y<4?'Run for the trees.':'Crawl through the tunnel in Block A.';
+    case 'friends':{let b=null,bd=1e9;for(const o of comps){if(o.lost||o.recruited)continue;const d=Math.hypot(o.x-P.x,o.y-P.y);if(d<bd){bd=d;b=o;}}if(!b)return 'Your friends are with you.';return `Find ${b.name}: ${isNight()?'in '+whereIs(b.x,b.y):'at work at '+whereIs(b.x,b.y)}.`;}
+    case 'trees':return P.y<4?'Into the trees.':'Through the gap in the wire, then run for the trees.';
+  }
+  if(G.phase==='day'&&G.shiftDone)return 'Work done. The rest of the day is yours until the evening bell.';
+  return '';
+}
 function objectives(){
   const n=comps.filter(c=>c.recruited&&!c.lost).length;
   return [
@@ -1918,21 +1975,19 @@ function updateHud(force){
   const z=zoneAt(P.x,P.y);const lg=legal(P);
   let zl=z==='safe'?'Barrack · safe':z==='outside'?'Outside the wire':G.phase==='day'&&lg==='ok'?(G.job&&!G.shiftDone?'On duty':'Yard'):LEGAL_LABEL[lg];
   if(G.armband&&G.phase==='night'&&z!=='safe')zl+=' · armband';
-  const key=JSON.stringify([guideKey(),G.goal,objectives(),comps.map(c=>c.state+c.recruited),G.lives,zl,G.phase,G.job,G.shiftDone,G.scraps,G.armband,Math.floor(G.shift*20),G.day]);
+  const key=JSON.stringify([nextStep(),Math.round(G.health),G.linen,guideKey(),G.goal,objectives(),comps.map(c=>c.state+c.recruited),G.lives,zl,G.phase,G.job,G.shiftDone,G.scraps,G.armband,Math.floor(G.shift*20),G.day]);
   const cl=document.getElementById('clock');cl.innerHTML='';cl.append(clockText());if(G.ff>1){const s=document.createElement('span');s.className='ff';s.textContent='▸▸';cl.appendChild(s);}
   document.querySelector('#weight i').style.width=G.burden+'%';
+  document.querySelector('#health i').style.width=G.health+'%';document.getElementById('health').classList.toggle('low',G.health<35);
   if(!force&&key===G.hudKey)return;G.hudKey=key;
   const ul=document.getElementById('objs');ul.innerHTML='';
   let next=null;
-  const gk=guideKey();for(const [t,d,opt,k] of objectives()){const li=document.createElement('li');li.textContent=t.trim();if(t.startsWith('  '))li.style.paddingLeft='12px';if(d)li.className='done';else if(!next&&!opt){li.className='next';next=t.trim().replace(/^…/,'');}
+  const gk=guideKey();for(const [t,d,opt,k] of objectives()){const li=document.createElement('li');{const tx=document.createElement('span');tx.className='t';tx.textContent=t.trim();li.appendChild(tx);}
+    const rq=!d&&requirements(k);if(rq){const sp=document.createElement('span');sp.className='req';sp.innerHTML=rq;li.appendChild(sp);}if(t.startsWith('  '))li.style.paddingLeft='12px';if(d)li.className='done';else if(!next&&!opt){li.className='next';next=t.trim().replace(/^…/,'');}
     if(!d){li.classList.add('pick');if(k===gk)li.classList.add('guiding');li.onclick=()=>{G.goal=G.goal===k?'none':k;G.guide=null;if(isTouch())trEl.classList.add('collapsed');updateHud(true);};}ul.appendChild(li);}
   {const li=document.createElement('li');li.className='hintline';li.textContent=gk&&gk!=='work'?'Tap a line to be guided there; tap again to stop.':'Tap a line to be guided there.';ul.appendChild(li);}
-  let nx='';
-  if(G.phase==='day'&&G.skipped)nx='No work today · stay out of sight';
-  else if(G.phase==='day'&&G.job){const J=JOBS[G.job];nx=G.shiftDone?'Work done. Wait for the evening bell.':`Work: ${J.name} · ${Math.round(G.shift*100)}%`;}
-  else if(G.phase==='line')nx='';
-  else nx=next?'Next: '+next:'';
-  document.getElementById('next').textContent=nx;
+  const nx=nextStep(),ne=document.getElementById('next');ne.replaceChildren();
+  if(nx){const b=document.createElement('b');b.textContent='Next';ne.append(b,nx);}
   const inv=[];if(G.has.rifle)inv.push(`rifle (${G.ammo} rounds)`);if(G.has.ether)inv.push('ether');if(G.has.cutters)inv.push('wire cutters');if(G.has.keycard)inv.push('gate keycard');if(G.has.blankets)inv.push(`${G.has.blankets} blanket${G.has.blankets>1?'s':''}`);if(G.scraps)inv.push(`${G.scraps} scrap${G.scraps>1?'s':''} of meat`);if(G.breaker)inv.push('knows the breaker');if(G.scent)inv.push('dogs know your scent');
   document.getElementById('inv').textContent=inv.length?'Carrying: '+inv.join(' · '):'';
   const cr=document.getElementById('crew');cr.innerHTML='';
@@ -2849,6 +2904,7 @@ function render(){
   drawGuideBeacon();
   // screen-space overlays
   ctx.setTransform(DPR,0,0,DPR,0,0);
+  if(G.hurt>0.02||G.health<35){const a=Math.min(0.55,G.hurt*0.5+(G.health<35?(35-G.health)/35*0.3*(0.8+0.2*Math.sin(G.time*3)):0));const gr=ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*0.25,VW/2,VH/2,Math.max(VW,VH)*0.7);gr.addColorStop(0,'rgba(120,0,0,0)');gr.addColorStop(1,`rgba(140,10,8,${a})`);ctx.fillStyle=gr;ctx.fillRect(0,0,VW,VH);}
   if(G.burden>15){const a=Math.min(0.5,(G.burden-15)/100*0.6);const gr=ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*0.3,VW/2,VH/2,Math.max(VW,VH)*0.75);gr.addColorStop(0,'rgba(20,0,0,0)');gr.addColorStop(1,`rgba(30,4,4,${a})`);ctx.fillStyle=gr;ctx.fillRect(0,0,VW,VH);}
   const toScreen=(x,y,z)=>{const p=iso(x,y,z);return [VW/2+(p[0]-G.camX)*SC,VH/2+(p[1]-G.camY)*SC];};
   const onScreen=([x,y])=>x>-120&&x<VW+120&&y>-60&&y<VH+60;
@@ -2963,7 +3019,7 @@ function step(dt){
   updateAlarmEvents(dt);
   if(!guards.some(g=>g.state==='chase')&&!dogs.some(d=>d.state==='chase'))G.alarm=Math.max(0,G.alarm-dt);
   if(G.sirenT>0)G.sirenT-=dt;
-  updateHeartbeat(dt);updateAmbient(dt);updateGramophone();updatePA();
+  updateHeartbeat(dt);updateAmbient(dt);updateHealth(dt);updateGramophone();updatePA();
   if(G.phase!=='line'&&!G.over)updateClock(dt);
   updateDialog(dt);
   updateHud(false);

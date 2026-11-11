@@ -18,11 +18,18 @@ Open `index.html` in a browser. There's nothing to build or install.
 
 - There are no inner fences: the only fenced area inside the camp is the East compound around the East Block.
 
+## Health and what to do next
+- **Health** (under Breath) drops when guards beat you (−15), when you're caught (−25) and when you're shot (−45). A rifle hit no longer means instant capture: you're wounded and can keep going. If your health runs out you collapse, which counts as being caught, and you wake at 40.
+- **Low health** (red, below 35) slows you down, shortens your breath and reddens the edges of the screen.
+- **Healing:** slowly over time, faster resting in a barrack at night or while sleeping. Doktor Lamm in the Lazarett treats you once a day (+35).
+- **Next:** a box at the top left always says the one concrete thing to do now and where. For example: "Find Tomas (he's in Block C), or do the East Block job to learn the breaker", "Get wire cutters (workshop job, or Bram at night) or a blanket (Lazarett shelf, now empty)", "Dawn is coming. Get into a barrack before roll call."
+- **Ways out:** under each route, its requirements with ✓ or ✗ and where to get each one.
+
 ## Rifles
 - **Every guard is armed:** rifle slung on his back on patrol, raised to his shoulder when he chases.
 - **Getting one:** knock a guard out at night and take his rifle (5 rounds), or steal one from the Wachstube rack (8 rounds; there are two).
 - **Shooting:** with a rifle, Act on a guard within about 8 tiles in clear sight shoots him. Accuracy drops with distance. He falls and fades; nothing graphic is shown. The shot sets off the siren, alerts every guard within about 16 tiles, adds +10 Weight and turns his dog loose. A replacement arrives at dawn.
-- **Being armed:** any guard who sees you armed outside a barrack chases you, stops, aims and fires. A hit counts as being caught: you lose a chance and the rifle.
+- **Being armed:** any guard who sees you armed outside a barrack chases you, stops, aims and fires. Each hit costs 45 health; if it takes the last of it, you're caught and lose the rifle.
 - **Ether:** the Lazarett job gives you a vial. Your next knockout lasts until morning.
 
 ## A day in Grauhof
