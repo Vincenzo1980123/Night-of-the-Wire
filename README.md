@@ -14,7 +14,8 @@ Open `index.html` in a browser. There's nothing to build or install. (Served ove
 - **South section:** the canteen, the infirmary, the water basin with its wash troughs, Blocks D and E, and the guardhouse with its rifle rack.
 - **East compound:** the East Block, with a steel vent stack that hums all night, and a burn pit beside it. A long fenced corridor runs down to the arrivals gate in the south fence. This is the only fenced-off area inside the facility.
 - **Outside the south fence:** a railway ramp, a small station, two tracks and a standing freight train of shipping containers behind a diesel locomotive. At night a horn announces another line, which walks from the ramp through the arrivals gate to the East Block.
-- **Propaganda:** a few Directorate posters on outside walls and banners on some lamp posts, with an eye in a hexagon in teal and white. The slogans include "ORDER · UNITY · OBEDIENCE", "THE DIRECTORATE SEES YOU", "COMPLIANCE KEEPS YOU SAFE", "REPORT DISLOYALTY" and "QUIET IS LOYAL".
+- **The Director:** the regime's (invented) leader, a heavy, bald, scowling man. A towering bronze statue of him in a greatcoat stands on a granite plinth in the middle of the yard.
+- **Propaganda:** Directorate posters on outside walls and banners on most lamp posts. Half of them carry the Director's scowling portrait ("THE DIRECTOR IS WATCHING", "OBEY THE DIRECTOR", "HE KNOWS YOUR NUMBER"); the rest the regime's eye-in-a-hexagon emblem in teal and white, with slogans such as "ORDER · UNITY · OBEDIENCE", "THE DIRECTORATE SEES YOU", "COMPLIANCE KEEPS YOU SAFE" and "REPORT DISLOYALTY".
 - **People:** prisoners wear bright orange jumpsuits. New arrivals in the line still wear their own everyday clothes. Guards wear dark tactical uniforms, helmets and a teal Directorate patch, and carry modern rifles.
 
 ## A day in Greywater
@@ -31,6 +32,7 @@ A working day lasts about 8 minutes (06:00 to 18:00). Nights last 3½ minutes.
   | Guard office | +18 | The gate keycard |
   | **Special detail: the East Block** | **+35** | A special-detail pass for the night; the dogs learn your scent; you learn the breaker that kills the lights |
 
+- **Bow to the Director:** once every day, go to the statue in the yard and press Act to bow (+1 Weight). Skip it and the guards beat you at the evening count (−15 health, +4 Weight). Guards let you walk to the statue during work, and other prisoners bow as they pass it.
 - **Day:** go to your job and hold Act to work. If you wander off, guards order you back, and after five seconds they beat you back to your post.
 - **Night (22:00–05:30):** searchlights, lamps, guards and dogs. Be back in a barrack by dawn roll call, or it counts as a failed attempt. You can sleep through the night on your bunk.
 - **Weight:** what the work does to you. High Weight shortens your breath, slows your hands and brings intrusive thoughts. Talking to people in the barracks at night eases it.

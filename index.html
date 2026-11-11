@@ -306,8 +306,8 @@ const MAIN=[
   'F.#.....#...##o###...#......#..F',           // 13 steel door, padlocked
   'F.###j###..L......L..####o###..F',           // 14
   'F'+dots(30)+'_',                             // 15  passage into the East compound
-  'F'+dots(8)+'XXX'+dots(9)+'#######'+'...'+'F',// 16
-  'F'+dots(8)+'Xb.'+'U'+dots(8)+'#PPPPP#'+'...'+'F',// 17 U kitchen pot
+  'F'+dots(8)+'XXX'+dots(4)+'vv'+dots(3)+'#######'+'...'+'F',// 16 vv: the Director's plinth
+  'F'+dots(8)+'Xb.'+'U'+dots(3)+'vv'+dots(3)+'#PPPPP#'+'...'+'F',// 17 U kitchen pot
   'F'+dots(8)+'...'+'...L.....'+'###p###'+'...'+'F', // 18
   'F'+dots(30)+'F',                             // 19
   'F.BBBdBBB...BBBdBBB...BBBdBBB..F',           // 20
@@ -382,7 +382,7 @@ const ROOMS=[
 const WALK=new Set(['.',',','E','d','P','c','_','h','H']);
 const PIT={x0:40,y0:16,x1:42,y1:18,cx:41,cy:17};
 const pitDist=(x,y)=>Math.hypot(Math.max(PIT.x0-x,0,x-PIT.x1),Math.max(PIT.y0-y,0,y-PIT.y1));
-const OPAQUE=new Set(['#','B','T','o','X','r','w','W','C','D','Q','N']);
+const OPAQUE=new Set(['#','B','T','o','X','r','w','W','C','D','Q','N','v']);
 const LAMPS=[];
 let grid, floorCol;
 const roomAt=(x,y)=>{x=Math.floor(x);y=Math.floor(y);for(const r of ROOMS)if(x>=r.x0&&x<=r.x1&&y>=r.y0&&y<=r.y1)return r;return null;};
@@ -464,6 +464,12 @@ const NPC_DEFS=[
 const COMP_DAY={mira:{x:25.5,y:34.5},tomas:{x:5.5,y:11.6},bram:{x:10.5,y:18.4}};
 
 /* ================= state ================= */
+// the Director: the regime's leader, as a bronze statue in the yard and on the posters (an invented figure)
+const STATUE={x:17,y:17,z:0.9,dir:Math.PI*0.25,isStatue:true,_hi:true,
+  look:{skin:'#776b55',shirt:'#6c614c',pants:'#655a46',hair:'#5c5242',browC:'#4c4335',iris:'#3e372c',hairStyle:'bald',scale:2.3,bulk:1.24,statue:true,
+    face:{w:1.18,jaw:0.08,nose:1.02,eyes:0.82,lids:0.42,brow:-0.024,browTilt:0.04,browW:0.036,age:1,frown:0.04,lash:0.3}},
+  fixedPose:{drop:0,lean:-0.06,bow:-0.1,hipL:0.04,hipR:-0.04,kneeL:0.02,kneeR:0.02,shL:-0.32,shR:-0.32,elbL:0.95,elbR:0.95,rollL:0.1,rollR:0.1,lie:0}};
+const STATUE_NEAR=()=>Math.hypot(P.x-STATUE.x,P.y-STATUE.y);
 const LOOKS={
   player:{skin:'#e2b590',shirt:'#d8641a',stripe:null,pants:'#c4581a',hair:'#6b4c36',hairStyle:'bald',stubble:true,goatee:true,iris:'#4a3626',browC:'#94725a',scale:1,face:{nose:.58,eyes:1.14,lids:.1,brow:.012,browTilt:-.034,browW:.012,jaw:.28,lash:.4}},
   mira:{skin:'#e8bf9b',shirt:'#d8641a',stripe:null,pants:'#c4581a',hair:'#191210',hairStyle:'bun',scarf:'#2c3e66',iris:'#5a3a24',scale:.94,face:{w:.95,jaw:.38,nose:.8,eyes:1.06,lids:.17,browW:.015,lip:'#b8665c'}},
@@ -513,7 +519,7 @@ function newGame(){
      flags:{beam:false,office:false,gate:false,fence:false,inner:false},won:false,over:false,fade:0,fadeMsg:'',fadeOut:0,
      spotCd:[0,0,0,0,0,0],start:spawns.S,compHome:{mira:spawns.m,tomas:spawns.t,bram:spawns.b},dialogQ:[],dlg:null,hudKey:'',outside:false,leaveHinted:false,shake:0,
      alarmEvT:85,queue:{active:false,npcs:[],nextT:24,count:0},doorOpen:false,
-     hints:{},convo:{A:{i:0,t:2},B:{i:0,t:6},C:{i:0,t:4}},news:[],intrusiveT:30,abuseT:5,actHeld:false,subs:[],sirenT:0};
+     bowed:0,hints:{},convo:{A:{i:0,t:2},B:{i:0,t:6},C:{i:0,t:4}},news:[],intrusiveT:30,abuseT:5,actHeld:false,subs:[],sirenT:0};
   document.getElementById('subs').replaceChildren();
   computeFloor();
   P=mkChar({x:spawns.S.x,y:spawns.S.y,look:LOOKS.player,name:'Aren',mode:0,stamina:100,tired:false,busy:null,isPlayer:true,dir:Math.PI*1.25});
@@ -617,7 +623,7 @@ function chooseJob(id){
   document.getElementById('sJob').hidden=true;
   if(id==='none'){G.job=null;G.skipped=true;G.phase='day';G.clock=0;G.ff=1;G.shift=0;G.shiftDone=false;
     showDialog('hint',"No work for you today. The barracks are safe. In the open yard, guards who spot you will beat you back inside. Everything else is up to you, but in daylight the guards see everything.",8);
-    computeFloor();updateHud(true);return;}
+    bowHint();computeFloor();updateHud(true);return;}
   G.job=id;G.phase='day';G.clock=0;G.ff=1;G.shift=0;G.shiftDone=false;
   const J=JOBS[id];
   if(id==='east'){
@@ -631,8 +637,14 @@ function chooseJob(id){
   }else{
     showDialog('hint',`Go to your work: ${J.where} Hold ${isTouch()?'ACT':'E'} there to work. A pulsing ring marks the spot.`,6);
   }
-  computeFloor();updateHud(true);
+  bowHint();computeFloor();updateHud(true);
 }
+function bowHint(){if(G.hints.bow)return;G.hints.bow=true;
+  queueDialog('hint',"Every prisoner must bow before the statue of the Director in the yard once a day. Miss it and the guards beat you at the evening count.",7);}
+const BOW_GUARD=["Lower, filth. Lower!","Deeper. He sees you.","That's it. Remember who feeds you.","Hold it. Longer.","Good dog."];
+function bowDone(){G.bowed=G.day;G.burden=Math.min(100,G.burden+1);
+  const g=guards.filter(g=>g.state!=='ko'&&dist(g,P)<8).sort((a,b)=>dist(a,P)-dist(b,P))[0];if(g)say(g,pick(BOW_GUARD));
+  updateHud(true);}
 function finishShift(){
   G.shiftDone=true;G.ff=1;P.working=false;P.crouch=P.mode===1;
   const J=JOBS[G.job];
@@ -700,6 +712,8 @@ function nearStain(){let b=null,bd=0.8;for(const s of G.stains){if(s.a<=0)contin
 function startNight(){
   if(G.job&&!G.shiftDone){G.burden=Math.min(100,G.burden+6);G.nightMsg="You didn't finish your work. At the evening count Kell pointed you out, and the guards beat you in front of the block.";}
   if(G.skipped){G.burden=Math.min(100,G.burden+6);G.nightMsg="You missed your work detail. At the evening count Kell found your number on the list and the guards beat you in front of the block.";G.skipped=false;}
+  if(G.bowed!==G.day&&!P.inLine){G.burden=Math.min(100,G.burden+4);G.health=Math.max(5,G.health-15);G.hurt=Math.min(1,(G.hurt||0)+0.4);
+    G.nightMsg=(G.nightMsg?G.nightMsg+' ':'')+"You never bowed to the Director today. At the evening count the guards dragged you out of the line and beat you for it.";}
   G.phase='night';G.clock=0;G.ff=1;G.job=null;G.eastOpen=false;G.detail=[];G.stains=[];P.working=false;P.sleeping=false;
   grid[14][5]=G.has.cutters?'d':'j';grid[14][25]='o';grid[13][14]='o';
   G.queue.nextT=18;G.alarmEvT=70+Math.random()*60;G.comforted={};
@@ -713,7 +727,7 @@ function startNight(){
   for(const n of G.npcs){n.x=n.night.x;n.y=n.night.y;n.sit=n.sitDef;n.crouch=n.sitDef;n.working=false;n.path=null;}
   resetGuards();
   computeFloor();
-  if(G.nightMsg){showDialog('Aren',G.nightMsg,5,'whisper');G.nightMsg=null;}
+  if(G.nightMsg){showDialog('Aren',G.nightMsg,Math.max(5,G.nightMsg.length/24),'whisper');G.nightMsg=null;}
   queueDialog('hint',G.day===1?"Lights out. The searchlights are on. This is when you can move. Be back in a barrack before dawn roll call, or it counts as a failed attempt. You can also sleep on your bunk.":`Night ${G.day}. Lights out.`,G.day===1?8:3);
   if(G.armband)queueDialog('hint',"You carry the special-detail pass tonight. Guards wave you through the yard and only warn you in restricted areas. The dogs know your scent.",6);
   updateHud(true);
@@ -1265,6 +1279,8 @@ function legal(t){
       if(JOBS[G.job].room&&r&&r.name===JOBS[G.job].room)return 'ok';
     }
     if(z==='yard'){
+      // on the way to bow before the statue nobody stops you
+      if(me&&G.bowed!==G.day){const ds=Math.hypot(t.x-STATUE.x,t.y-STATUE.y);if(ds<2.8||(ds<9&&t.moving&&Math.abs(angDiff(Math.atan2(STATUE.y-t.y,STATUE.x-t.x),t.dir))<0.9))return 'ok';}
       if(me&&G.skipped&&G.clock>20)return 'slack';
       if(me&&G.job&&!G.shiftDone&&G.clock>25){const s=JOBS[G.job].spot||{x:31.5,y:15.5};if(Math.hypot(t.x-s.x,t.y-s.y)>5)return 'slack';}
       return 'ok';
@@ -1440,6 +1456,8 @@ function updateComp(c,dt){
 }
 function updateNpc(n,dt){
   if(n.bubble){n.bubble.t-=dt;if(n.bubble.t<=0)n.bubble=null;}
+  if(n.bowT>0){n.bowT-=dt;n.moving=false;turnTo(n,Math.atan2(STATUE.y-n.y,STATUE.x-n.x),4,dt);return;}
+  if(G.phase==='day'&&n.bowDay!==G.day&&Math.hypot(n.x-STATUE.x,n.y-STATUE.y)<2.7){n.bowDay=G.day;n.bowT=2.6;n.moving=false;return;}
   const d=dist(n,P);
   const route=G.phase==='day'&&n.dayRoute?n.dayRoute:n.route;
   if(route&&!(G.phase==='day'&&n.dayPos)){
@@ -1742,6 +1760,8 @@ function findInteract(){
   const consider=(d,o)=>{if(o&&d<bd){bd=d;best=o;}};
   const key=isTouch()?'ACT':'E';
   if(G.outside&&!G.won)consider(0,{label:'Leave now',fn:()=>endGame('win')});
+  {const ds=STATUE_NEAR();if(ds<2.5&&G.phase==='day'&&!P.busy){
+    if(G.bowed!==G.day)consider(ds-0.3,{label:'Bow to the Director',fn:()=>{P.dir=Math.atan2(STATUE.y-P.y,STATUE.x-P.x);P.busy={t:0,time:2.6,label:'Bowing',done:bowDone};}});}}
   // work
   if(G.phase==='day'&&G.job&&!G.shiftDone){
     const J=JOBS[G.job];
@@ -1916,7 +1936,9 @@ function requirements(k){
 // one concrete instruction: what to do right now, and where
 function nextStep(){
   if(!G||G.phase==='pick'||G.phase==='line'||G.over)return '';
-  if(G.phase==='day'&&G.skipped)return 'No work today. Stay out of sight in the yard.';
+  const mustBow=G.phase==='day'&&G.bowed!==G.day;
+  if(mustBow&&G.clock>DAY_LEN-100)return 'Bow before the Director\'s statue in the yard before the evening bell, or be beaten at the count.';
+  if(G.phase==='day'&&G.skipped)return mustBow?'No work today. But bow before the Director\'s statue in the yard once, or be beaten tonight.':'No work today. Stay out of sight in the yard.';
   if(G.phase==='day'&&G.job&&!G.shiftDone)return `Work: ${JOBS[G.job].name} · ${Math.round(G.shift*100)}%. Hold ${isTouch()?'ACT':'E'} at the marked spot.`;
   if(G.health<35)return 'You\'re badly hurt. Rest in a barrack, or let Dr. Lamm in the infirmary treat you.';
   if(G.phase==='night'&&G.clock>NIGHT_LEN-35&&zoneAt(P.x,P.y)!=='safe'&&P.y>=4)return 'Dawn is coming. Get into a barrack before roll call.';
@@ -1935,9 +1957,10 @@ function nextStep(){
       return G.power?'Open the main gate with the keycard, north of the camp. The motor is loud: be quick.':'The gate lock needs power. Use the fence tonight, or try the gate tomorrow.';
     case 'tunnel':if(G.tunnel<1)return `Dig the tunnel under the bunk in Block A (${Math.floor(G.tunnel*100)}%).`;return P.y<4?'Run for the trees.':'Crawl through the tunnel in Block A.';
     case 'friends':{let b=null,bd=1e9;for(const o of comps){if(o.lost||o.recruited)continue;const d=Math.hypot(o.x-P.x,o.y-P.y);if(d<bd){bd=d;b=o;}}if(!b)return 'Your friends are with you.';return `Find ${b.name}: ${isNight()?'in '+whereIs(b.x,b.y):'at work at '+whereIs(b.x,b.y)}.`;}
+    case 'bow':return 'Bow before the Director\'s statue in the yard once a day, or be beaten at the evening count.';
     case 'trees':return isOut(P.y)?'Into the trees.':P.y>=44?'Past the ramp guard, behind the train, across the tracks into the trees.':'Through the gap in the wire, then run for the trees.';
   }
-  if(G.phase==='day'&&G.shiftDone)return 'Work done. The rest of the day is yours until the evening bell.';
+  if(G.phase==='day'&&G.shiftDone)return G.bowed!==G.day?'Work done. Now bow before the Director\'s statue in the yard, or be beaten at the evening count.':'Work done. The rest of the day is yours until the evening bell.';
   return '';
 }
 function objectives(){
@@ -2193,11 +2216,34 @@ const SLOGANS=[['ORDER','UNITY','OBEDIENCE'],['THE DIRECTORATE','SEES YOU'],['CO
 function drawEmblem(c,cx,cy,r,fg){c.save();c.strokeStyle=fg;c.lineWidth=Math.max(1,r*0.16);c.beginPath();for(let i=0;i<6;i++){const a=Math.PI/6+i*Math.PI/3;i?c.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r):c.moveTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);}c.closePath();c.stroke();
   c.beginPath();c.moveTo(cx-r*0.62,cy);c.quadraticCurveTo(cx,cy-r*0.6,cx+r*0.62,cy);c.quadraticCurveTo(cx,cy+r*0.6,cx-r*0.62,cy);c.closePath();c.fillStyle=fg;c.fill();
   c.beginPath();c.arc(cx,cy,r*0.2,0,TAU);c.fillStyle='#0d4d50';c.fill();c.restore();}
-function posterDeco(i){return (c,tw,th,shade)=>{const k=shade,x0=tw/2-13,y0=th*0.2,w=26,h=Math.min(38,th*0.5),sl=SLOGANS[i%SLOGANS.length];
-  c.fillStyle=css([226,222,208],k);c.fillRect(x0,y0,w,h);c.fillStyle=css([18,112,114],k);c.fillRect(x0,y0,w,h*0.48);
-  drawEmblem(c,x0+w/2,y0+h*0.24,h*0.17,css([236,240,238],k));
-  c.fillStyle=css([30,32,34],k);c.font='bold 4.6px Arial,sans-serif';c.textAlign='center';sl.forEach((t,j)=>c.fillText(t,x0+w/2,y0+h*0.62+j*5.2));
+// the Director's face for posters and banners: a heavy bald head, low brows, a scowl, a uniform collar
+function drawDirector(c,cx,cy,r,k,ink,paper){
+  const I=css(ink,k),Pp=css(paper,k),mid=css(ink.map((v,j)=>Math.round(v*0.45+paper[j]*0.55)),k);
+  c.save();
+  c.fillStyle=I;c.beginPath();c.moveTo(cx-r*1.55,cy+r*1.9);c.quadraticCurveTo(cx-r*1.4,cy+r*0.95,cx-r*0.5,cy+r*0.9);c.lineTo(cx+r*0.5,cy+r*0.9);c.quadraticCurveTo(cx+r*1.4,cy+r*0.95,cx+r*1.55,cy+r*1.9);c.closePath();c.fill();
+  c.fillStyle=Pp;c.beginPath();c.moveTo(cx-r*0.42,cy+r*0.9);c.lineTo(cx,cy+r*1.35);c.lineTo(cx+r*0.42,cy+r*0.9);c.closePath();c.fill();
+  c.fillStyle=mid;c.beginPath();c.ellipse(cx,cy+r*0.62,r*0.62,r*0.36,0,0,TAU);c.fill();
+  c.fillStyle=Pp;c.beginPath();c.ellipse(cx,cy,r*0.86,r*0.98,0,0,TAU);c.fill();
+  c.fillStyle=mid;c.beginPath();c.ellipse(cx+r*0.3,cy+r*0.1,r*0.5,r*0.82,0,-1.2,1.4);c.fill();
+  c.fillStyle=Pp;c.beginPath();c.ellipse(cx-r*0.25,cy-r*0.45,r*0.22,r*0.14,-0.4,0,TAU);c.globalAlpha=0.7;c.fill();c.globalAlpha=1;
+  c.strokeStyle=I;c.lineCap='round';c.lineWidth=Math.max(1,r*0.2);
+  c.beginPath();c.moveTo(cx-r*0.62,cy-r*0.26);c.lineTo(cx-r*0.1,cy-r*0.08);c.moveTo(cx+r*0.62,cy-r*0.26);c.lineTo(cx+r*0.1,cy-r*0.08);c.stroke();
+  c.fillStyle=I;for(const sx of [-1,1]){c.beginPath();c.ellipse(cx+sx*r*0.33,cy+r*0.05,r*0.11,r*0.06,0,0,TAU);c.fill();}
+  c.lineWidth=Math.max(0.8,r*0.1);c.beginPath();c.moveTo(cx,cy+r*0.02);c.lineTo(cx-r*0.08,cy+r*0.36);c.lineTo(cx+r*0.06,cy+r*0.4);c.stroke();
+  c.lineWidth=Math.max(0.9,r*0.12);c.beginPath();c.moveTo(cx-r*0.32,cy+r*0.68);c.quadraticCurveTo(cx,cy+r*0.52,cx+r*0.32,cy+r*0.68);c.stroke();
+  c.lineWidth=Math.max(0.6,r*0.06);c.beginPath();c.moveTo(cx-r*0.55,cy+r*0.4);c.quadraticCurveTo(cx-r*0.58,cy+r*0.75,cx-r*0.36,cy+r*0.88);c.moveTo(cx+r*0.55,cy+r*0.4);c.quadraticCurveTo(cx+r*0.58,cy+r*0.75,cx+r*0.36,cy+r*0.88);c.stroke();
+  c.restore();}
+const PORTRAIT_LINES=[['THE DIRECTOR','IS WATCHING'],['OBEY','THE DIRECTOR'],['HE KNOWS','YOUR NUMBER']];
+function posterDeco(i){if(i%2===0)return portraitPoster(i/2|0);return (c,tw,th,shade)=>{const k=shade,w=32,h=Math.min(46,th*0.62),x0=tw/2-w/2,y0=th*0.14,sl=SLOGANS[i%SLOGANS.length];
+  c.fillStyle=css([226,222,208],k);c.fillRect(x0,y0,w,h);c.fillStyle=css([18,112,114],k);c.fillRect(x0,y0,w,h*0.5);
+  drawEmblem(c,x0+w/2,y0+h*0.25,h*0.19,css([236,240,238],k));
+  c.fillStyle=css([30,32,34],k);c.font='bold 5.4px Arial,sans-serif';c.textAlign='center';sl.forEach((t,j)=>c.fillText(t,x0+w/2,y0+h*0.66+j*6));
   c.fillStyle='rgba(60,50,40,.18)';c.fillRect(x0,y0+h-4,w,4);c.fillStyle='rgba(255,255,255,.12)';c.fillRect(x0+w-5,y0,2,h);};}
+function portraitPoster(i){return (c,tw,th,shade)=>{const k=shade,w=34,h=Math.min(50,th*0.68),x0=tw/2-w/2,y0=th*0.1,ln=PORTRAIT_LINES[i%PORTRAIT_LINES.length];
+  c.fillStyle=css([18,112,114],k);c.fillRect(x0,y0,w,h);c.fillStyle=css([150,34,30],k);c.fillRect(x0,y0+h*0.78,w,h*0.22);
+  c.save();c.beginPath();c.rect(x0,y0,w,h*0.78);c.clip();drawDirector(c,x0+w/2,y0+h*0.36,h*0.21,k,[16,22,24],[232,226,206]);c.restore();
+  c.fillStyle=css([240,236,224],k);c.font='bold 4.6px Arial,sans-serif';c.textAlign='center';c.fillText(ln[0],x0+w/2,y0+h*0.86);c.fillText(ln[1],x0+w/2,y0+h*0.95);
+  c.fillStyle='rgba(0,0,0,.18)';c.fillRect(x0,y0+h-3,w,3);c.fillStyle='rgba(255,255,255,.1)';c.fillRect(x0+w-5,y0,2,h);};}
 function doorDeco(kind){return (c,tw,th,shade)=>{const k=shade,x0=tw/2-16,w=32,h=Math.min(th-2,70);
   c.fillStyle=css([60,44,30],k);c.fillRect(x0-4,th-h-4,w+8,h+4);c.fillStyle=css(kind==='steel'?[86,96,104]:[108,76,48],k);c.fillRect(x0,th-h,w,h);
   c.fillStyle=css([0,0,0],1);c.globalAlpha=0.25;c.fillRect(x0+w/2,th-h,1,h);c.globalAlpha=1;
@@ -2274,7 +2320,7 @@ function flush(){TQ.sort((a,b)=>a.d-b.d);const m_=ctx.getTransform();ctx.lineWid
 
 /* ---------- heads: sculpted ovals with painted, individual faces ---------- */
 const HEAD={rf:0.172,rs:0.152,ru:0.222};
-const FACE0={w:1,jaw:0.3,nose:1,eyes:1,lids:0.22,brow:0,browTilt:0,browW:0.022,age:0,lip:null,spacing:1,lash:0.62};
+const FACE0={w:1,jaw:0.3,nose:1,eyes:1,lids:0.22,brow:0,browTilt:0,browW:0.022,age:0,lip:null,spacing:1,lash:0.62,frown:0};
 function headPt(th,ph,F){
   const st=Math.sin(th),ct=Math.cos(th),cp=Math.cos(ph),sp=Math.sin(ph);
   let f=HEAD.rf*st*cp,s=HEAD.rs*F.w*st*sp,u=HEAD.ru*ct;const low=Math.max(0,-ct);
@@ -2306,14 +2352,14 @@ function buildHead(L,lo){
   parts.push(ellip(lo?5:8,lo?3:5,0.054*ns,0.034*ns,0.06*ns,[nb[0]-0.014,0,nb[2]-0.008],mixC(skin,[150,70,50],0.05),{bias:0.03,soft:true,ramp:SR,warp:p=>[p[0]>0?p[0]*1.08:p[0]*0.45,p[1]*(1-0.28*Math.max(0,p[2]/(0.06*ns))),p[2]-0.28*Math.max(0,p[0])]}));
   for(const sg of [1,-1])parts.push(ellip(lo?4:6,lo?2:3,0.042,0.016,0.058,[-0.012,sg*0.15*F.w,-0.012],mixC(skin,[0,0,0],0.05),{soft:true,ramp:SR}));
   const te=1.38,pe=0.37*F.spacing,dt=0.105*F.eyes,dp=0.145*F.eyes;
-  const white=mixC([232,226,210],skin,0.14),iris=L.iris?rgbOf(L.iris):[52,38,28],lidC=mixC(skin,[70,44,32],0.16),lash=mixC(skin,[26,18,14],F.lash),browC=L.browC?rgbOf(L.browC):mixC(hair,[0,0,0],0.1);
+  const white=L.statue?mixC(skin,[255,255,255],0.06):mixC([232,226,210],skin,0.14),iris=L.iris?rgbOf(L.iris):[52,38,28],pupil=L.statue?mixC(skin,[0,0,0],0.45):[18,14,12],lidC=mixC(skin,[70,44,32],0.16),lash=mixC(skin,[26,18,14],F.lash),browC=L.browC?rgbOf(L.browC):mixC(hair,[0,0,0],0.1);
   const nb_=lo?4:8;
   for(const sg of [1,-1]){const pc=sg*pe;
     if(lo){parts.push(eyePatch(te-0.006,pc-sg*0.015,dt*0.62,dp*0.5,0.002,mixC(iris,[20,14,10],0.5),0.06,6));
       parts.push(strip([[te-dt-0.07-F.brow+F.browTilt,sg*0.1*F.spacing],[te-dt-0.07-F.brow,sg*0.55*F.spacing]],F.browW*1.2,0.004,browC,0.08));continue;}
     parts.push(eyePatch(te,pc,dt,dp,0.0012,white,0.05,12));
     parts.push(eyePatch(te-0.012,pc-sg*0.02,dt*0.66,dp*0.43,0.002,iris,0.06,10));
-    parts.push(eyePatch(te-0.012,pc-sg*0.02,dt*0.32,dp*0.2,0.0026,[18,14,12],0.065,6));
+    parts.push(eyePatch(te-0.012,pc-sg*0.02,dt*0.32,dp*0.2,0.0026,pupil,0.065,6));
     const top=[],bot=[],ln=[];for(let k=0;k<=nb_;k++){const x=-1+2*k/nb_,h=Math.sqrt(Math.max(0,1-x*x)),ph=pc+x*dp*1.06;top.push([te-dt*1.12*h-0.004,ph]);const lt=te-dt*(1.12-2*F.lids)*h;bot.push([lt,ph]);ln.push([lt,ph]);}
     parts.push(band(top,bot,lidC,0.075,0.0024));
     if(!lo)parts.push(strip(ln,0.0075,0.0028,lash,0.08));
@@ -2321,7 +2367,7 @@ function buildHead(L,lo){
     parts.push(strip([[bi,sg*0.09*F.spacing],[(bi+bo)/2-0.012,sg*0.33*F.spacing],[bo,sg*0.58*F.spacing]],F.browW,0.004,browC,0.08));
   }
   const mc=1.97,mw=0.17;
-  parts.push(strip(lo?[[mc+0.006,-mw],[mc+0.004,0],[mc+0.006,mw]]:[[mc+0.006,-mw],[mc,-mw*0.4],[mc+0.004,0],[mc,mw*0.4],[mc+0.006,mw]],0.0105,0.002,mixC(skin,[90,34,30],0.4),0.06));
+  const fr=F.frown||0;parts.push(strip(lo?[[mc+0.006+fr,-mw],[mc+0.004,0],[mc+0.006+fr,mw]]:[[mc+0.006+fr,-mw],[mc+fr*0.3,-mw*0.4],[mc+0.002,0],[mc+fr*0.3,mw*0.4],[mc+0.006+fr,mw]],0.0105,0.002,mixC(skin,[90,34,30],0.4),0.06));
   if(F.lip&&!lo)parts.push(strip([[mc+0.03,-mw*0.6],[mc+0.034,0],[mc+0.03,mw*0.6]],0.012,0.0016,mixC(skin,rgbOf(F.lip),0.35),0.055));
   if(F.age>0&&!lo){const ac=mixC(skin,[40,24,18],0.14+0.08*F.age);
     for(const sg of [1,-1])parts.push(strip([[1.66,sg*0.15],[1.8,sg*0.19],[1.93,sg*0.21]],0.006,0.002,ac,0.055));
@@ -2350,7 +2396,13 @@ function buildHead(L,lo){
     parts.push(ellip(6,4,0.02,0.02,0.02,[0.178,0,0.1],[190,160,80]));}
   CURF=FACE0;return parts;
 }
-function buildFigure(L,lo,guard){
+function buildFigure(L,lo,guard){const F_=buildFigure0(L,lo,guard);const k=L.bulk||1;
+  if(L.statue){const coat=mixC(rgbOf(L.shirt),[0,0,0],0.08),n=lo?8:16;
+    // a long uniform greatcoat to the knee, a belt, and epaulettes on the shoulders
+    F_.pelvis.push(loft([{u:0.14,rf:0.125,rs:0.165},{u:-0.08,rf:0.15,rs:0.19},{u:-0.3,rf:0.17,rs:0.21},{u:-0.44,rf:0.18,rs:0.22}],n,coat,{e:2.4,bias:0.012}));
+    F_.pelvis.push(loft([{u:0.1,rf:0.132,rs:0.172},{u:0.15,rf:0.132,rs:0.172}],n,mixC(coat,[0,0,0],0.25),{e:2.4,bias:0.02}));
+    for(const sd of [1,-1])F_.torso.push(ellip(lo?5:8,lo?3:4,0.075,0.07,0.028,[0,sd*0.17,0.52],mixC(coat,[255,230,170],0.12)));}if(k!==1)for(const part of ['pelvis','torso'])for(const m of F_[part])m.V=m.V.map(v=>[v[0]*k,v[1]*k,v[2]]);return F_;}
+function buildFigure0(L,lo,guard){
   const skin=rgbOf(L.skin),shirt=rgbOf(L.shirt),stripe=L.stripe?rgbOf(L.stripe):null,pants=rgbOf(L.pants);
   const boot=guard?[38,34,30]:[72,58,44],SR=lo?16:30;
   const M={pelvis:[],torso:[],head:buildHead(L,lo),uaL:[],laL:[],uaR:[],laR:[],thL:[],snL:[],thR:[],snR:[]};
@@ -2393,7 +2445,9 @@ function buildFigure(L,lo,guard){
 function targetPose(e){
   const t=G.time,ph=e.anim||0,mov=e.moving,prisoner=!e.isGuard;
   const p={drop:0,lean:prisoner?0.07:-0.03,bow:prisoner?0.1:-0.02,hipL:0,hipR:0,kneeL:0.06,kneeR:0.06,shL:0.04,shR:0.04,elbL:0.22,elbR:0.22,rollL:0.08,rollR:0.08,lie:0};
+  if(e.fixedPose)return Object.assign(p,e.fixedPose);
   if(e.state==='ko'||e.lie||(e===P&&P.sleeping)){p.lie=1;return p;}
+  if(e.bowT>0||(e===P&&P.busy&&P.busy.label==='Bowing'))return Object.assign(p,{drop:0.06,lean:1.0,bow:0.5,hipL:0.12,hipR:0.12,kneeL:0.2,kneeR:0.2,shL:0.3,shR:0.3,elbL:0.06,elbR:0.06,rollL:0.02,rollR:0.02});
   p.lean+=Math.sin(t*1.7+(e.y||0)*3)*0.015;
   if(e.sit)return Object.assign(p,{drop:0.44,lean:0.2,bow:0.3,hipL:-1.0,hipR:-1.0,kneeL:2.3,kneeR:2.3,shL:0.55,shR:0.55,elbL:0.7,elbR:0.7,rollL:0.15,rollR:0.15});
   const companionTask=e.state==='work'&&e.work&&e.work.started;
@@ -2421,12 +2475,13 @@ function drawPerson(e,alpha){
   const tp=targetPose(e);if(!e.pose)e.pose=Object.assign({},tp);
   const po=e.pose,k=Math.min(1,frameDt*16);for(const kk in tp){if(kk==='lie')po.lie=tp.lie;else po[kk]+=(tp[kk]-po[kk])*k;}
   const S=0.93*(e.look.scale||1);
-  drawShadow(e.x,e.y,po.lie?17*S:11*S,po.lie?7*S:5.5*S);
-  const root={R:Ry(e.dir).map(v=>v*S),t:[e.x,e.y,0]};
+  if(!e.isStatue)drawShadow(e.x,e.y,po.lie?17*S:11*S,po.lie?7*S:5.5*S);
+  const root={R:Ry(e.dir).map(v=>v*S),t:[e.x,e.y,e.z||0]};
   const hip=po.lie?cx(root,cx(Tr(0.32,0,0.14),Ro(Rp(Math.PI/2)))):cx(root,Tr(0,0,0.67-po.drop));
   const torso=cx(hip,Ro(Rp(-po.lean))),head=cx(torso,cx(Tr(0,0,0.62),cx(Ro(Rp(-po.bow)),Tr(0,0,0.19))));
-  const arm=(sd,pt,rl,el)=>{const a=cx(torso,cx(Tr(0,sd*0.2,0.5),cx(Ro(Rr(sd*rl)),Ro(Rp(pt)))));return [a,cx(a,cx(Tr(0,0,-0.26),Ro(Rp(el))))];};
-  const leg=(sd,h,kn)=>{const a=cx(hip,cx(Tr(0,sd*0.085,0),Ro(Rp(h))));return [a,cx(a,cx(Tr(0,0,-0.32),Ro(Rp(-kn))))];};
+  const BK=e.look.bulk||1;
+  const arm=(sd,pt,rl,el)=>{const a=cx(torso,cx(Tr(0,sd*0.2*BK,0.5),cx(Ro(Rr(sd*rl)),Ro(Rp(pt)))));return [a,cx(a,cx(Tr(0,0,-0.26),Ro(Rp(el))))];};
+  const leg=(sd,h,kn)=>{const a=cx(hip,cx(Tr(0,sd*0.085*BK,0),Ro(Rp(h))));return [a,cx(a,cx(Tr(0,0,-0.32),Ro(Rp(-kn))))];};
   const [uaL,laL]=arm(1,po.shL,po.rollL,po.elbL),[uaR,laR]=arm(-1,po.shR,po.rollR,po.elbR),[thL,snL]=leg(1,po.hipL,po.kneeL),[thR,snR]=leg(-1,po.hipR,po.kneeR);
   const armed=(e.isGuard&&e.rifle!==false&&!e.gone)||(e===P&&G.has.rifle),aiming=(e.isGuard&&e.state==='chase')||(e===P&&P.aimT>0);
   const M=e[key],body=al=>{const E=(list,X)=>{for(const m of list)emit(m,X,al,lo===1);};
@@ -2443,7 +2498,7 @@ function drawPerson(e,alpha){
   if(pk===e._pk){e._pkN++;}else{e._pk=pk;e._pkN=0;}
   if(e._pkN<2){body(alpha);}
   else{
-    if(!e._spr||e._spr.k!==pk){const c0=iso(e.x,e.y),bx=c0[0]-52,by=c0[1]-82,w=Math.ceil(104*RS),h=Math.ceil(104*RS);
+    if(!e._spr||e._spr.k!==pk){const c0=iso(e.x,e.y),bs=(e.look.scale||1)*BK,zp=(e.z||0)*30,bw=104*bs,bh=104*(e.look.scale||1)+zp,bx=c0[0]-bw/2,by=c0[1]-82*(e.look.scale||1)-zp,w=Math.ceil(bw*RS),h=Math.ceil(bh*RS);
       let c=e._spr&&e._spr.c;if(!c||c.width!==w||c.height!==h){c=document.createElement('canvas');c.width=w;c.height=h;}
       const g=c.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,w,h);g.setTransform(RS,0,0,RS,-bx*RS,-by*RS);
       const saved=ctx;ctx=g;try{body(undefined);}finally{ctx=saved;}
@@ -2484,11 +2539,13 @@ function drawMeshAt(mesh,x,y,z,yaw,scale){const X={R:Ry(yaw).map(v=>v*scale),t:[
 const FENCEISH=new Set(['F','f','T','G','R']);
 const WALLISH='#oCDBd';
 let pInside=false;
-function wallDeco(x,y,side,b){
+// on +x walls the texture runs right-to-left, so decorations are flipped back to read the right way round
+function wallDeco(x,y,side,b){const d=wallDeco0(x,y,side,b);if(!d||side!=='R')return d;return (c,tw,th,k)=>{c.save();c.translate(tw,0);c.scale(-1,1);d(c,tw,th,k);c.restore();};}
+function wallDeco0(x,y,side,b){
   if(!b)return null;const ext=side==='L'?(y===b.y1):(x===b.x1);if(!ext)return null;
   if(grid[y][x]==='o')return doorDeco('steel');
   if((x+y)%2===0)return windowDeco(b.wood&&!b.prefab?'wood':b.east?'bars':'conc');
-  if(!b.east&&hash(x*3.1+7,y*1.7+3)<0.22)return posterDeco(Math.floor(hash(x,y)*SLOGANS.length));
+  if(!b.east&&hash(x*3.1+7,y*1.7+3)<0.38)return posterDeco(Math.floor(hash(x,y)*SLOGANS.length));
   return null;
 }
 function drawTileStatic(x,y,ch,bi){
@@ -2524,6 +2581,15 @@ function drawTileStatic(x,y,ch,bi){
         if(open){ctx.fillStyle='#050505';ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(bb[0],bb[1]);ctx.lineTo(bt[0],bt[1]);ctx.lineTo(at_[0],at_[1]);ctx.closePath();ctx.fill();}
         else face(ctx,P3(x+0.1,y+1,1.45),P3(x+0.9,y+1,1.45),P3(x+0.1,y+1,0),'steel',0,0.8*TR,1.45*TR,ENV_L);
         block(x+0.02,y+0.92,x+0.1,y+1.04,0,1.5,{tex:'concrete',edges:false});block(x+0.9,y+0.92,x+0.98,y+1.04,0,1.5,{tex:'concrete',edges:false});}
+      break;}
+    case 'v':{// the granite plinth under the Director's statue, two tiers, with a bronze plaque on the front
+      const pv=(dx,dy)=>at(x+dx,y+dy)==='v',ins=(d,k)=>pv(...d)?0:k;
+      const g1=[96,94,90],g2=[110,108,103];
+      blockS(x+ins([-1,0],0.02),y+ins([0,-1],0.02),x+1-ins([1,0],0.02),y+1-ins([0,1],0.02),0,0.28,g1,{noL:pv(0,1),noR:pv(1,0)});
+      blockS(x+ins([-1,0],0.14),y+ins([0,-1],0.14),x+1-ins([1,0],0.14),y+1-ins([0,1],0.14),0.28,0.9,g2,{noL:pv(0,1),noR:pv(1,0)});
+      if(!pv(0,1)){const xa=pv(-1,0)?x:x+0.5,xb=pv(1,0)?x+1:x+0.5,yy=y+1-0.14+0.002;
+        const q=[P3(xa,yy,0.45),P3(xb,yy,0.45),P3(xb,yy,0.72),P3(xa,yy,0.72)];ctx.fillStyle='#7a6438';ctx.beginPath();ctx.moveTo(q[0][0],q[0][1]);for(const t of q.slice(1))ctx.lineTo(t[0],t[1]);ctx.closePath();ctx.fill();
+        for(const z of [0.53,0.63])line(P3(xa+(pv(-1,0)?0:0.06),yy,z),P3(xb-(pv(1,0)?0:0.06),yy,z),'rgba(222,196,130,.75)',1.2);}
       break;}
     case 'X':block(x+0.06,y+0.06,x+0.94,y+0.94,0,0.85,{tex:'crate',v,ao:false});
       line(P3(x+0.08,y+0.94,0.08),P3(x+0.92,y+0.94,0.78),'rgba(90,64,38,.9)',3);line(P3(x+0.94,y+0.08,0.08),P3(x+0.94,y+0.92,0.78),'rgba(90,64,38,.9)',3);break;
@@ -2581,10 +2647,11 @@ function drawTileStatic(x,y,ch,bi){
     case 'g':case 'q':blockS(x+0.1,y+0.15,x+0.9,y+0.85,0,1.0,ch==='g'?[96,104,66]:[60,62,48]);for(let i=0;i<4;i++)line(P3(x+0.15+i*0.2,y+0.85,0.15),P3(x+0.25+i*0.2,y+0.85,0.15),'#d8a830',3);break;
     case 'j':block(x+0.05,y+0.35,x+0.95,y+0.62,0.2,0.5,{tex:'planks',v,top:'woodDark'});block(x+0.3,y+0.1,x+0.56,y+0.9,0,0.3,{tex:'planks',v:1,top:'woodDark'});break;
     case 'L':block(x+0.46,y+0.46,x+0.54,y+0.54,0,2.24,{tex:'steel',v:0,edges:false});drawMeshAt(LAMPSHADE,x+0.5,y+0.5,2.22,0,1);
-      if(hash(x*1.3,y*2.1)<0.4){// a Directorate banner hanging from an arm on the post
+      if(hash(x*1.3,y*2.1)<0.75){// a Directorate banner hanging from an arm on the post
         line(P3(x+0.5,y+0.54,1.98),P3(x+0.5,y+0.95,1.98),'#4a5056',2);
         face(ctx,P3(x+0.5,y+0.58,1.96),P3(x+0.5,y+0.94,1.96),P3(x+0.5,y+0.58,0.95),'steel',0,0.36*TR,1.01*TR,ENV_R,(c,tw,th,k)=>{c.fillStyle=css([18,112,114],k);c.fillRect(-0.5,-0.5,tw+1,th+1);
-          drawEmblem(c,tw/2,th*0.3,tw*0.32,css([236,240,238],k));c.fillStyle=css([236,240,238],k);c.fillRect(2,th*0.62,tw-4,1.5);c.fillRect(2,th*0.7,tw-4,1.5);
+          if(hash(x*2.7+1,y*0.9+5)<0.55){drawDirector(c,tw/2,th*0.34,tw*0.3,k,[16,22,24],[232,226,206]);c.fillStyle=css([150,34,30],k);c.fillRect(0,th*0.66,tw,th*0.14);}
+          else{drawEmblem(c,tw/2,th*0.3,tw*0.32,css([236,240,238],k));c.fillStyle=css([236,240,238],k);c.fillRect(2,th*0.62,tw-4,1.5);c.fillRect(2,th*0.7,tw-4,1.5);}
           c.fillStyle=css([10,70,72],k);c.beginPath();c.moveTo(0,th);c.lineTo(tw/2,th-6);c.lineTo(tw,th);c.closePath();c.fill();});}
       for(const [dx,dy] of [[0.36,0.1],[0.1,0.36]]){const a=P3(x+0.54,y+0.54,1.86),b=P3(x+0.5+dx,y+0.5+dy,1.8);
         ctx.strokeStyle='#4a5056';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
@@ -2744,7 +2811,10 @@ function nearestTile(chs,fx,fy,filter){let b=null,bd=1e9;for(let y=0;y<H;y++)for
 // which goal the guide follows: work by day, else the player's pick, else the most sensible next step
 function guideKey(){
   if(!G||P.inLine||G.over||G.phase==='pick'||G.phase==='line')return null;
+  const bow=G.phase==='day'&&G.bowed!==G.day;
+  if(bow&&G.clock>DAY_LEN-100)return 'bow';
   if(workTarget())return 'work';
+  if(bow)return 'bow';
   if(G.goal==='none')return null;
   const done=Object.fromEntries(objectives().map(o=>[o[3],o[1]]));
   if(G.goal&&!done[G.goal])return G.goal;
@@ -2756,6 +2826,7 @@ function guideKey(){
 function guideTarget(){
   const k=guideKey();if(!k)return null;
   if(k==='work')return workTarget();
+  if(k==='bow')return {x:18.7,y:18.7,label:"The Director's statue: bow"};
   const bunk=()=>{if(G.linen<=0)return {x:7.5,y:12.4,label:'Wire cutters: the workshop'};const t=nearestTile('s',P.x,P.y);return t&&{x:t.x,y:t.y-0.9,label:'Blankets: the infirmary linen shelf'};};
   const fenceX=()=>clamp(Math.floor(P.x),2,29)+0.5;
   switch(k){
@@ -2876,6 +2947,10 @@ function render(){
     if(e!==P&&underRoof(e))continue;
     if(inEast(e.x,e.y)&&!pInside&&e!==P)continue;
     list.push({d:e.x+e.y+(e.lie?0.3:0),k:1,f:()=>e.isDog?drawDog(e):drawPerson(e,e.fall?Math.max(0,1-e.fall.t/0.75):e.down?Math.max(0,Math.min(1,(3.4-e.down.t)/0.9)):undefined)});}
+  // the Director's statue on its plinth: see-through when Aren is behind it
+  {const sp=iso(STATUE.x,STATUE.y);if(Math.abs(sp[0]-G.camX)<halfW+90&&Math.abs(sp[1]-G.camY)<halfH+160){
+    const behind=P.x+P.y<STATUE.x+STATUE.y+0.6&&Math.abs((P.x-P.y)-(STATUE.x-STATUE.y))<2.6&&P.x+P.y>STATUE.x+STATUE.y-6;
+    list.push({d:STATUE.x+STATUE.y+1,k:1,f:()=>drawPerson(STATUE,behind?0.55:undefined)});}}
   SPR_MAX=Math.max(640,Math.ceil(list.length*2));
   list.sort((a,b)=>a.d-b.d||a.k-b.k);
   for(const it of list)it.f();
