@@ -93,7 +93,7 @@ Mid-1990s European isometric 3D adventure games: polygonal characters in a hand-
   - Construction details, cutaway roofs, cast shadows, and a diorama base.
 
 ## Sound
-- **Loudspeakers:** by day they play an original synthetic **Directorate anthem** (D minor; pads, pulsing bass, electronic drums, a lead and brass stabs). It plays after a modern two-tone chime.
+- **Loudspeakers:** by day, after a modern two-tone chime, the facility PA plays classical recordings: Verdi's **Anvil Chorus** (*Il trovatore*) through the morning's work, then after the midday announcement Mussorgsky's **Bydło** (*Pictures at an Exhibition*, the heavy ox-cart), then quiet until the end-of-work announcement. Opened as a local file, without the recordings, an original synthesised anthem stands in.
 - **Announcements:** at midday and just before the evening bell, the loudspeakers carry angry announcements in a made-up language, through a distorted megaphone.
 - **Guard office radio:** at night it plays a slow original synth piece, faint from outside.
 - **Siren and dogs:** a mechanical siren that spins up and winds down, and dog barks with distinct voices.
@@ -103,5 +103,7 @@ Mid-1990s European isometric 3D adventure games: polygonal characters in a hand-
 ## Audio credits
 - `audio/siren.mp3`: a mechanical civil-defence siren (wavering tone), recorded in St. Paul, Minnesota by Techtonic, Wikimedia Commons (File:Civil-defense-siren-waver.ogg), public domain. A 40-second excerpt.
 - `audio/dog-1.mp3`, `dog-2.mp3`, `dog-3.mp3`: excerpts of "Barking of a dog" and "Barking of a dog 2" by Amada44, Wikimedia Commons, licensed CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/). Trimmed and loudness-normalised; these three excerpts are shared under the same licence.
+- `audio/anvil-chorus.mp3`: Giuseppe Verdi, "Anvil Chorus" from *Il trovatore*, performed by Musopen, Wikimedia Commons (File:Giuseppe Verdi - Anvil Chorus.ogg), CC0 / public domain. Converted to mono and loudness-normalised.
+- `audio/bydlo.mp3`: Modest Mussorgsky, "Bydło" from *Pictures at an Exhibition*, performed by the Skidmore College Orchestra, Wikimedia Commons (File:Skidmore College Orchestra - 07 - IV Bydlo Sempre moderato pesante.ogg), CC0 / public domain. Converted to mono and loudness-normalised.
 - `audio/announce-day.mp3`, `announce-evening.mp3`: made-up words written for the game, spoken by the eSpeak NG speech engine (Esperanto phonetics, male variant) with a megaphone treatment.
-- All music and every other sound are synthesised in the browser and original to this game.
+- All other music and every other sound are synthesised in the browser and original to this game.

@@ -1145,7 +1145,8 @@ function* paGen(sr){
 /* ---- real recordings (public domain), fetched in the background; synthesised versions are the fallback ---- */
 // only files that exist are listed; more slots (march2, song, night, siren, fire, dog1-3) are wired below and fall back to synthesis
 const REC_FILES={siren:'audio/siren.mp3',
-  dog1:'audio/dog-1.mp3',dog2:'audio/dog-2.mp3',dog3:'audio/dog-3.mp3',annDay:'audio/announce-day.mp3',annEve:'audio/announce-evening.mp3'};
+  dog1:'audio/dog-1.mp3',dog2:'audio/dog-2.mp3',dog3:'audio/dog-3.mp3',annDay:'audio/announce-day.mp3',annEve:'audio/announce-evening.mp3',
+  music1:'audio/anvil-chorus.mp3',music2:'audio/bydlo.mp3'};
 const REC={},REC_WAIT={n:0,t0:0};
 function loadRecordings(){
   if(!AC||loadRecordings.done||location.protocol==='file:')return;loadRecordings.done=true;
@@ -1158,11 +1159,11 @@ const PA_LEVELS={normal:1,quiet:0.45,off:0},PA_LABEL={normal:'Loudspeakers: norm
 function cyclePA(){PA_VOL=PA_VOL==='normal'?'quiet':PA_VOL==='quiet'?'off':'normal';try{localStorage.setItem('grauhof.pa',PA_VOL);}catch(e){}document.getElementById('paBtn').textContent=PA_LABEL[PA_VOL];}
 let PAPROG=null,PAG=null,PALP=null,SPK=null,PASRC=null,PA={i:0,next:0};
 function speakerChain(){
-  // a horn loudspeaker: no bass, no treble, a nasal honk, overdriven; the other speakers across the yard echo it
-  SPK=AC.createBiquadFilter();SPK.type='highpass';SPK.frequency.value=330;SPK.Q.value=0.8;
-  const pk=AC.createBiquadFilter();pk.type='peaking';pk.frequency.value=1150;pk.Q.value=1.1;pk.gain.value=8;
-  const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=3300;lp.Q.value=0.9;
-  const sh=AC.createWaveShaper(),cv=new Float32Array(1024);for(let i=0;i<1024;i++){const x=i/511.5-1;cv[i]=Math.tanh(x*2.4)/Math.tanh(2.4);}sh.curve=cv;
+  // a facility PA horn: thin bass, soft treble, a little nasal and driven; the other speakers across the yard echo it
+  SPK=AC.createBiquadFilter();SPK.type='highpass';SPK.frequency.value=240;SPK.Q.value=0.8;
+  const pk=AC.createBiquadFilter();pk.type='peaking';pk.frequency.value=1150;pk.Q.value=0.9;pk.gain.value=5;
+  const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=4800;lp.Q.value=0.9;
+  const sh=AC.createWaveShaper(),cv=new Float32Array(1024);for(let i=0;i<1024;i++){const x=i/511.5-1;cv[i]=Math.tanh(x*1.7)/Math.tanh(1.7);}sh.curve=cv;
   const pre=AC.createGain();pre.gain.value=1.4;
   PALP=AC.createBiquadFilter();PALP.type='lowpass';PALP.frequency.value=4000;PAG=AC.createGain();PAG.gain.value=0;
   SPK.connect(pk).connect(lp).connect(pre).connect(sh).connect(PALP).connect(PAG).connect(master);
@@ -1176,15 +1177,17 @@ function preparePA(){
     if(!r.done){setTimeout(step_,30);return;}PAPROG={chime:buf(r.value.chime),march:buf(r.value.march)};};
   setTimeout(step_,1500);
 }
-// the day's programme: chime, a march, the ballad, another march... real records whenever they're available
-function paPlaylist(){const P_=PAPROG,first=P_.march;
-  return [[P_.chime,0.6],[first,3],[P_.chime,0.4],[REC.annDay,2],[first,40]].filter(x=>x[0]);}
+// the day's programme: the morning chime and Verdi's Anvil Chorus for the work, the midday announcement,
+// Mussorgsky's ox-cart (Bydlo) for the afternoon, then quiet until the end-of-work announcement.
+// Without the recordings (opened as a local file) the synthesised anthem stands in.
+function paPlaylist(){const P_=PAPROG,m1=REC.music1||P_.march,m2=REC.music2||(REC.music1?null:P_.march);
+  return [[P_.chime,0.6],[m1,3],[P_.chime,0.4],[REC.annDay,2],[m2,REC.music2?999:40]].filter(x=>x[0]);}
 function updatePA(){
   if(!AC||!PAG||!PAPROG||PAPROG==='busy')return;const t=AC.currentTime,day=G.phase==='day'&&running&&!paused&&!P.inLine;
   if(G.phase!=='day'){if(PASRC){const s_=PASRC;PASRC=null;PAG.gain.setTargetAtTime(0,t,0.4);try{s_.stop(t+1.5);}catch(e){}}PA.i=0;PA.next=0;PA.eve=false;PA.forced=null;return;}
   // shortly before the evening bell the music is cut for the end-of-work announcement
   if(!PA.eve&&REC.annEve&&G.clock>=DAY_LEN-(REC.annEve.duration+6)){PA.eve=true;PA.forced=[[PAPROG.chime,0.4],[REC.annEve,99]];if(PASRC){const s_=PASRC;PASRC=null;try{s_.stop();}catch(e){}}PA.next=t+0.6;}
-  if(!PASRC&&t>=PA.next&&!(PA.i>0&&REC_WAIT.n>0&&t<REC_WAIT.t0+12)){let b,gap;if(PA.forced&&PA.forced.length)[b,gap]=PA.forced.shift();else{const list=paPlaylist();[b,gap]=list[PA.i%list.length];PA.i++;}
+  if(!PASRC&&t>=PA.next&&!(PA.i>0&&REC_WAIT.n>0&&t<REC_WAIT.t0+20)){let b,gap;if(PA.forced&&PA.forced.length)[b,gap]=PA.forced.shift();else{const list=paPlaylist();[b,gap]=list[PA.i%list.length];PA.i++;}
     const src=AC.createBufferSource();src.buffer=b;src.connect(SPK);src.start();PASRC=src;
     src.onended=()=>{if(PASRC===src){PASRC=null;PA.next=AC.currentTime+gap;}};}
   let d=99;for(const L of LAMPS){const k=Math.hypot(L.x-P.x,L.y-P.y);if(k<d)d=k;}
