@@ -83,7 +83,7 @@ Pause menu: sound, *Chatter* (nearby only / off / all) and *Loudspeakers* (norma
 ## Visual style
 Mid-1990s European isometric 3D adventure games: polygonal characters in a hand-painted miniature world. All designs are original.
 - **Characters:** low-poly figures with soft Gouraud shading, sculpted heads and individual faces.
-  - Aren is bald with a goatee.
+  - Aren has a freshly shaven head (a faint dark shadow with a hairline) and a goatee.
   - Bram is heavier, darker and bearded.
   - Tomas is grey with glasses.
   - Mira wears a bun and a dark-blue scarf.

@@ -465,7 +465,7 @@ const COMP_DAY={mira:{x:25.5,y:34.5},tomas:{x:5.5,y:11.6},bram:{x:10.5,y:18.4}};
 
 /* ================= state ================= */
 const LOOKS={
-  player:{skin:'#e2b590',shirt:'#d8641a',stripe:null,pants:'#c4581a',hair:'#6b4c36',hairStyle:'bald',goatee:true,iris:'#4a3626',browC:'#94725a',scale:1,face:{nose:.58,eyes:1.14,lids:.1,brow:.012,browTilt:-.034,browW:.012,jaw:.28,lash:.4}},
+  player:{skin:'#e2b590',shirt:'#d8641a',stripe:null,pants:'#c4581a',hair:'#6b4c36',hairStyle:'bald',stubble:true,goatee:true,iris:'#4a3626',browC:'#94725a',scale:1,face:{nose:.58,eyes:1.14,lids:.1,brow:.012,browTilt:-.034,browW:.012,jaw:.28,lash:.4}},
   mira:{skin:'#e8bf9b',shirt:'#d8641a',stripe:null,pants:'#c4581a',hair:'#191210',hairStyle:'bun',scarf:'#2c3e66',iris:'#5a3a24',scale:.94,face:{w:.95,jaw:.38,nose:.8,eyes:1.06,lids:.17,browW:.015,lip:'#b8665c'}},
   tomas:{skin:'#d9ab86',shirt:'#d8641a',stripe:null,pants:'#c4581a',hair:'#cfcbc1',hairStyle:'grey',glasses:true,browC:'#b8b4aa',iris:'#4e5a52',scale:.97,face:{nose:1.05,eyes:.94,lids:.32,age:1,brow:-.012}},
   bram:{skin:'#a8754f',shirt:'#d8641a',stripe:null,pants:'#c4581a',hair:'#33241a',hairStyle:'bald',beard:true,iris:'#2e2018',scale:1.14,face:{w:1.1,jaw:.18,nose:1.12,eyes:.92,lids:.26,browW:.028,brow:-.008}},
@@ -2296,7 +2296,9 @@ function band(top,bot,col,bias,off){const V=[],T=[];for(let k=0;k<top.length;k++
 function buildHead(L,lo){
   const F=Object.assign({},FACE0,L.face||{});CURF=F;
   const skin=rgbOf(L.skin),hair=rgbOf(L.hair||'#2a2a2a'),parts=[],NU=lo?7:14,NV=lo?5:10,SR=lo?12:30;
-  parts.push(lattice(NU,NV,(i,j)=>headPt(j/NV*Math.PI,i/NU*TAU,F),skin,{center:[0,0,0],soft:true,ramp:SR}));
+  // a freshly shaven scalp is painted straight onto the head: a cool dark shadow where the hair would grow
+  const stub=L.stubble?mixC(skin,mixC(hair,[60,62,66],0.35),0.44):null,inScalp=(th,ph)=>th<1.1||(Math.cos(ph)<0.25&&th<1.9)||(Math.cos(ph)<0.6&&th<1.42);
+  parts.push(lattice(NU,NV,(i,j)=>headPt(j/NV*Math.PI,i/NU*TAU,F),stub?(i,j)=>inScalp((j+0.5)/NV*Math.PI,(i+0.5)/NU*TAU)?stub:skin:skin,{center:[0,0,0],soft:true,ramp:SR}));
   const nb=headPt(1.5,0,F),ns=F.nose;
   parts.push(ellip(lo?5:8,lo?3:5,0.054*ns,0.034*ns,0.06*ns,[nb[0]-0.014,0,nb[2]-0.008],mixC(skin,[150,70,50],0.05),{bias:0.03,soft:true,ramp:SR,warp:p=>[p[0]>0?p[0]*1.08:p[0]*0.45,p[1]*(1-0.28*Math.max(0,p[2]/(0.06*ns))),p[2]-0.28*Math.max(0,p[0])]}));
   for(const sg of [1,-1])parts.push(ellip(lo?4:6,lo?2:3,0.042,0.016,0.058,[-0.012,sg*0.15*F.w,-0.012],mixC(skin,[0,0,0],0.05),{soft:true,ramp:SR}));
