@@ -256,7 +256,7 @@ body.touch .mode{display:none}
       <kbd>Weight</kbd><span>What the work does to you. High Weight shortens your breath and slows your hands.</span>
       <kbd>Chances</kbd><span>The first two times you're caught, you're thrown back in the barrack. The third time, you are put in the line.</span>
     </div>
-    <div class="row"><button class="btn" id="resumeBtn" type="button">Resume</button><button class="btn ghost" id="soundBtn" type="button">Sound on</button><button class="btn ghost" id="chatterBtn" type="button">Chatter: nearby only</button><button class="btn ghost" id="restartBtn" type="button">Restart</button></div>
+    <div class="row"><button class="btn" id="resumeBtn" type="button">Resume</button><button class="btn ghost" id="soundBtn" type="button">Sound on</button><button class="btn ghost" id="chatterBtn" type="button">Chatter: nearby only</button><button class="btn ghost" id="paBtn" type="button">Loudspeakers: normal</button><button class="btn ghost" id="restartBtn" type="button">Restart</button></div>
   </div>
 </div>
 
@@ -1182,6 +1182,9 @@ function loadRecordings(){
   for(const [k,u] of Object.entries(REC_FILES))fetch(u).then(r=>r.ok?r.arrayBuffer():Promise.reject(r.status))
     .then(b=>new Promise((res,rej)=>AC.decodeAudioData(b,res,rej))).then(buf=>{REC[k]=buf;}).catch(()=>{}).finally(()=>{REC_WAIT.n--;});
 }
+let PA_VOL=(()=>{try{return localStorage.getItem('grauhof.pa')||'normal';}catch(e){return 'normal';}})();
+const PA_LEVELS={normal:1,quiet:0.45,off:0},PA_LABEL={normal:'Loudspeakers: normal',quiet:'Loudspeakers: quiet',off:'Loudspeakers: off'};
+function cyclePA(){PA_VOL=PA_VOL==='normal'?'quiet':PA_VOL==='quiet'?'off':'normal';try{localStorage.setItem('grauhof.pa',PA_VOL);}catch(e){}document.getElementById('paBtn').textContent=PA_LABEL[PA_VOL];}
 let PAPROG=null,PAG=null,PALP=null,SPK=null,PASRC=null,PA={i:0,next:0};
 function speakerChain(){
   // a horn loudspeaker: no bass, no treble, a nasal honk, overdriven; the other speakers across the yard echo it
@@ -1215,7 +1218,7 @@ function updatePA(){
     src.onended=()=>{if(PASRC===src){PASRC=null;PA.next=AC.currentTime+gap;}};}
   let d=99;for(const L of LAMPS){const k=Math.hypot(L.x-P.x,L.y-P.y);if(k<d)d=k;}
   const inside=zoneAt(P.x,P.y)==='safe'||!!roomAt(P.x,P.y);
-  PAG.gain.setTargetAtTime(day?(0.019+0.027*Math.max(0,1-d/7))*(inside?0.45:1):0,t,0.5);PALP.frequency.setTargetAtTime(inside?750:4200,t,0.4);
+  PAG.gain.setTargetAtTime(day?(0.007+0.01*Math.max(0,1-d/7))*(inside?0.45:1)*PA_LEVELS[PA_VOL]:0,t,0.5);PALP.frequency.setTargetAtTime(inside?750:4200,t,0.4);
 }
 const GRAMO={x:24.75,y:11.45};
 function updateGramophone(){
@@ -2997,7 +3000,7 @@ function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').text
 document.getElementById('pauseBtn').onclick=()=>togglePause();
 document.getElementById('resumeBtn').onclick=()=>togglePause();
 document.getElementById('soundBtn').onclick=()=>toggleSound();
-document.getElementById('chatterBtn').onclick=()=>cycleChatter();document.getElementById('chatterBtn').textContent=CHATTER_LABEL[CHATTER];
+document.getElementById('chatterBtn').onclick=()=>cycleChatter();document.getElementById('paBtn').onclick=()=>cyclePA();document.getElementById('paBtn').textContent=PA_LABEL[PA_VOL];document.getElementById('chatterBtn').textContent=CHATTER_LABEL[CHATTER];
 document.getElementById('restartBtn').onclick=()=>{paused=false;document.getElementById('sPause').hidden=true;startGame();};
 document.getElementById('againBtn').onclick=()=>{document.getElementById('sEnd').hidden=true;startGame();};
 document.getElementById('startBtn').onclick=()=>{document.getElementById('sTitle').hidden=true;startGame();};
