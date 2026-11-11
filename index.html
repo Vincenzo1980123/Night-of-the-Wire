@@ -295,7 +295,7 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
 const MAIN=[
   'T'+'F'.repeat(14)+'GG'+'F'.repeat(14)+'T',   // 4 outer fence with the main gate
-  'F'+dots(30)+'F',                             // 5
+  'F'+dots(16)+'L'+dots(13)+'F',                // 5 floodlight by the gate
   'F...L'+dots(21)+'L....F',                    // 6
   'F'+dots(30)+'F',                             // 7
   'F'+dots(30)+'F',                             // 8
@@ -439,7 +439,7 @@ const EAST_OBJECTS=[
 const INTRUSIVE=["The smell is still in your hair.","Your hands won't stop shaking.","In the quiet you hear the brush on concrete.","You keep seeing that floor when you blink."];
 const COMFORT=["Sit with me a while. You don't have to say anything.","Whatever they made you do today, it's on them. Not on you.","Here. Half my bread. Don't argue.","Breathe. In here, for a minute, you're just a person."];
 const LINE_THOUGHTS=["There's nowhere to go.","Guards on both sides. The dog is watching you.","Your feet keep moving. You don't remember telling them to.","Someone takes your hand. You let them."];
-const GUARD_NAMES=['Vance','Harrow','Kade','Dunmore','Pike','Stroud','Merrin','Corrigan','Fenn','Brand','Oster','Haldane','Rook','Calder'];
+const GUARD_NAMES=['Vance','Harrow','Kade','Dunmore','Pike','Stroud','Merrin','Corrigan','Fenn','Brand','Oster','Haldane','Rook','Calder','Voss'];
 const CONVOS={
   A:[['pell',"You should sleep, Hanne."],['hanne',"Sleep is for people who expect to wake up."],['pell',"Then rest your eyes. I'll watch the door."],['hanne',"Did you hear the line tonight? Children again."],['pell',"I heard. Don't make me say it out loud."]],
   B:[['kessler',"Lights out means mouths shut, Vael."],['lio',"I wasn't saying anything."],['kessler',"You were breathing loud. Rats breathe loud."],['lio',"Sorry, warden."],['kessler',"Sorry. Ha. Save it for the East line."]],
@@ -540,7 +540,8 @@ function newGame(){
     mkGuard([R(22.5,36.4),R(28.5,36.4)],11),
     mkGuard([R(2.5,35.4),R(19.5,35.4),R(30.3,42.5),R(12.5,42.5)],12),
     mkGuard([R(35.5,46.3)],13,{a:-Math.PI*0.5,r:0.7}),
-    mkGuard([R(15.5,14.45)],14,{a:Math.PI*0.5,r:0.95})  // the sentry at the power-house door
+    mkGuard([R(15.5,14.45)],14,{a:Math.PI*0.5,r:0.95,role:'power'}),  // the sentry at the power-house door
+    mkGuard([R(14.35,5.45)],15,{a:Math.PI*0.5,r:0.85,role:'gate'})   // the sentry at the main gate
   ];
   guards[7].escort=true;
   guards.forEach((g,i)=>g.name=GUARD_NAMES[i]);
@@ -570,7 +571,8 @@ function setTiles(from,to,rowOnly){for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(gr
 function startDay(){
   // the camp repairs itself every morning
   G.power=true;setTiles('q','g');setTiles('_','G',4);setTiles('c','F',4);setTiles('c','F',44);
-  grid[14][5]='d';grid[14][25]='d';grid[13][14]='o';G.powerT=0;G.backupDead=false;
+  grid[14][5]='d';grid[14][25]='d';grid[13][14]='o';setTiles('K','k');
+  if(G.has.keycard){G.has.keycard=false;G.news.push('At dawn the gate codes changed. Your stolen card is dead plastic now; a new spare is in the office.');}G.powerT=0;G.backupDead=false;
   G.flags={beam:false,office:false,gate:false,fence:false,inner:false};G.skipped=false;G.blanketAt={};
   G.alarm=0;G.armband=false;G.job=null;G.shift=0;G.shiftDone=false;G.eastOpen=false;G.detail=[];G.stains=[];G.doorOpen=false;
   G.queue.active=false;G.queue.npcs=[];
@@ -1663,6 +1665,8 @@ function assignWork(c,tx,ty,time,done){
 }
 const notByDay={label:'Not in daylight',fn:()=>showDialog('Aren',"Not in broad daylight. Tonight.",3,'whisper')};
 const slow=()=>G.burden>=60?1.35:1;
+const sentry=role=>guards.find(g=>g.post&&g.post.role===role);
+const gateSentryUp=()=>{const g=sentry('gate');return !!g&&g.state!=='ko';};
 function tileAction(ch,x,y){
   const night=G.phase==='night';
   switch(ch){
@@ -1686,11 +1690,12 @@ function tileAction(ch,x,y){
     case 'G':if(y!==4)return null;
       if(!G.has.keycard)return {label:'Main gate',fn:()=>showDialog('Aren',"A card reader on an electric lock. The guard office keeps a spare card.",4,'whisper')};
       if(!G.power)return {label:'Main gate (lock dead)',fn:()=>showDialog('Aren',"No power, no lock. The card is useless while the camp is dark.",4,'whisper')};
-      return {label:'Open the main gate with the keycard',fn:()=>{P.busy={t:0,time:1.8*slow(),label:'Card reader',done:()=>{setTiles('G','_',4);G.flags.gate=true;G.route=G.route||'gate';sfx('click');sfx('thud',0.5);updateHud(true);showDialog('Aren',"The lock clicks. The gate swings open. Walk. Don't run.",4,'whisper');}};}};
+      if(gateSentryUp())return {label:'Main gate (guarded)',fn:()=>showDialog('Aren',"Not with him standing right there. He has to go down first.",4,'whisper')};
+      return {label:'Open the main gate with the keycard',fn:()=>{for(const g of guards)if(!g.post&&dist(g,P)<10)hear(g,P.x,P.y);sfx('click');P.busy={t:0,time:3.5*slow(),label:'Card reader',done:()=>{setTiles('G','_',4);G.flags.gate=true;G.route=G.route||'gate';sfx('click');sfx('thud',0.5);updateHud(true);showDialog('Aren',"The lock clicks. The gate swings open. Walk. Don't run.",4,'whisper');}};}};
     case 'F':if((y!==4&&y!==44)||x<1||x>42||x===31)return null;
       if(G.power)return {label:'Outer fence (live)',fn:()=>{showDialog('Aren',"It's humming. Touch that and I'm dead. The power has to go first.",4,'whisper');}};
       if(G.has.cutters)return {label:'Cut through the fence',fn:()=>{P.busy={t:0,time:2.2*slow(),label:'Cutting',done:()=>{grid[y][x]='c';G.flags.fence=true;G.route=G.route||'wire';sfx('snip');crossFence(x,y);updateHud(true);showDialog('Aren',"Through. Into the trees, everyone.",3.5,'whisper');}};}};
-      if(G.has.blankets>0)return {label:'Throw a blanket over the wire and climb',fn:()=>{for(const g of guards)if(dist(g,P)<9)hear(g,P.x,P.y);P.busy={t:0,time:6*slow(),label:'Climbing',done:()=>{grid[y][x]='c';G.has.blankets--;G.blanketAt[x+','+y]=1;G.flags.fence=true;G.route=G.route||'blanket';sfx('thud',0.4);crossFence(x,y);updateHud(true);showDialog('Aren',"The blanket holds over the barbs. Over, everyone.",3.5,'whisper');}};}};
+      if(G.has.blankets>0)return {label:'Throw a blanket over the wire and climb',fn:()=>{for(const g of guards)if(!g.post&&dist(g,P)<9)hear(g,P.x,P.y);P.busy={t:0,time:6*slow(),label:'Climbing',done:()=>{grid[y][x]='c';G.has.blankets--;G.blanketAt[x+','+y]=1;G.flags.fence=true;G.route=G.route||'blanket';sfx('thud',0.4);crossFence(x,y);updateHud(true);showDialog('Aren',"The blanket holds over the barbs. Over, everyone.",3.5,'whisper');}};}};
       return {label:'Outer fence',fn:()=>showDialog('Aren',"Dead wire now. I need cutters, or a blanket to throw over the barbs.",4,'whisper')};
     case 'p':return {label:'Slide the cell bolt',fn:()=>{grid[y][x]='d';computeFloor();sfx('click');for(const c of comps)if(c.state==='captured'){c.state='follow';say(c,c.lines.freed);}updateHud(true);}};
     case 'a':if(G.rack<=0)return {label:'Empty rifle rack',fn:()=>showDialog('Aren',"Empty. They've noticed.",3,'whisper')};
@@ -1899,7 +1904,7 @@ function requirements(k){
   switch(k){
     case 'power':return `${CHK(G.has.phkey)} power-house key (guardhouse, far south) · ${CHK(rec('tomas'))} Tomas, or ${CHK(G.breaker)} the breaker (East Block job; backup restarts after ${BACKUP_T}s)`;
     case 'outer':return `${CHK(G.has.cutters)} wire cutters (workshop job, or Bram at night) · ${CHK(G.has.blankets>0)} blanket (infirmary shelf, ${G.linen} left)`;
-    case 'gate':return `${CHK(G.has.keycard)} keycard (guard office job, or Mira at night) · ${CHK(G.power)} power on`;
+    case 'gate':return `${CHK(G.has.keycard)} keycard (guard office job, or Mira at night; dead at dawn) · ${CHK(!gateSentryUp())} gate guard out of the way · ${CHK(G.power)} power on`;
     case 'tunnel':return `${CHK(G.tunnel>=1)} dug ${Math.floor(G.tunnel*100)}% · under the bunk in Block A`;
     case 'friends':return ['mira','tomas','bram'].map(id=>{const o=c(id);return `${CHK(rec(id))} ${o.name}${o.lost?' (taken east)':''}`;}).join(' · ');
   }
@@ -1923,7 +1928,8 @@ function nextStep(){
       if(G.has.cutters)return 'Cut through the dead outer fence: north of the camp, or the south fence by the railway.';if(G.has.blankets>0)return 'Throw a blanket over the dead outer fence and climb it: north, or south by the railway.';
       return `Get wire cutters (workshop job, or Bram at night) or a blanket (infirmary shelf${G.linen?'':', now empty'}).`;
     case 'gate':if(!G.has.keycard)return 'Get the gate keycard: the guard office job, or Mira picks the office lock at night.';
-      return G.power?'Open the main gate with the keycard, north of the camp. The searchlights are on: stay out of them.':'The gate lock needs power. Use the fence tonight, or try the gate tomorrow.';
+      if(G.power&&gateSentryUp())return isNight()?'A guard is posted at the main gate, under a floodlight. Knock him out from behind (along the fence), then use the card. The card only works until dawn.':'A guard is posted at the main gate. At night you can knock him out from behind; the card only works until dawn.';
+      return G.power?'Open the main gate with the keycard, north of the camp. The motor is loud: be quick.':'The gate lock needs power. Use the fence tonight, or try the gate tomorrow.';
     case 'tunnel':if(G.tunnel<1)return `Dig the tunnel under the bunk in Block A (${Math.floor(G.tunnel*100)}%).`;return P.y<4?'Run for the trees.':'Crawl through the tunnel in Block A.';
     case 'friends':{let b=null,bd=1e9;for(const o of comps){if(o.lost||o.recruited)continue;const d=Math.hypot(o.x-P.x,o.y-P.y);if(d<bd){bd=d;b=o;}}if(!b)return 'Your friends are with you.';return `Find ${b.name}: ${isNight()?'in '+whereIs(b.x,b.y):'at work at '+whereIs(b.x,b.y)}.`;}
     case 'trees':return isOut(P.y)?'Into the trees.':P.y>=44?'Past the ramp guard, behind the train, across the tracks into the trees.':'Through the gap in the wire, then run for the trees.';
@@ -1968,7 +1974,7 @@ function updateHud(force){
   {const li=document.createElement('li');li.className='hintline';li.textContent=gk&&gk!=='work'?'Tap a line to be guided there; tap again to stop.':'Tap a line to be guided there.';ul.appendChild(li);}
   const nx=nextStep(),ne=document.getElementById('next');ne.replaceChildren();
   if(nx){const b=document.createElement('b');b.textContent='Next';ne.append(b,nx);}
-  const inv=[];if(G.has.rifle)inv.push(`rifle (${G.ammo} rounds)`);if(G.has.ether)inv.push('ether');if(G.has.cutters)inv.push('wire cutters');if(G.has.keycard)inv.push('gate keycard');if(G.has.phkey)inv.push('power-house key');if(G.has.blankets)inv.push(`${G.has.blankets} blanket${G.has.blankets>1?'s':''}`);if(G.scraps)inv.push(`${G.scraps} scrap${G.scraps>1?'s':''} of meat`);if(G.breaker)inv.push('knows the breaker');if(G.scent)inv.push('dogs know your scent');
+  const inv=[];if(G.has.rifle)inv.push(`rifle (${G.ammo} rounds)`);if(G.has.ether)inv.push('ether');if(G.has.cutters)inv.push('wire cutters');if(G.has.keycard)inv.push('gate keycard (until dawn)');if(G.has.phkey)inv.push('power-house key');if(G.has.blankets)inv.push(`${G.has.blankets} blanket${G.has.blankets>1?'s':''}`);if(G.scraps)inv.push(`${G.scraps} scrap${G.scraps>1?'s':''} of meat`);if(G.breaker)inv.push('knows the breaker');if(G.scent)inv.push('dogs know your scent');
   document.getElementById('inv').textContent=inv.length?'Carrying: '+inv.join(' · '):'';
   const cr=document.getElementById('crew');cr.innerHTML='';
   for(const c of comps){const a=document.createElement('span');a.textContent=c.name;a.title=c.skill;const b=document.createElement('span');
@@ -2750,7 +2756,7 @@ function guideTarget(){
     case 'power':{if(!G.has.phkey){const y=nearestTile('y',P.x,P.y);if(y)return {x:y.x,y:y.y-0.9,label:'Power-house key: guardhouse'};}
       const t=nearestTile('gq',P.x,P.y);return t&&{x:t.x,y:t.y,label:G.breaker||compNear('tomas')?'Generator (power house)':'Generator: bring Tomas, or learn the breaker'};}
     case 'outer':if(G.has.cutters||G.has.blankets>0){const fx=fenceX();return P.y>24?{x:fx,y:44.5,label:'South fence, by the railway'}:{x:fx>14&&fx<17?13.5:fx,y:4.5,label:'Outer fence'};}return bunk();
-    case 'gate':return {x:16,y:4.6,label:G.has.keycard?'Main gate':'Main gate: needs the keycard (guard office)'};
+    case 'gate':return {x:16,y:4.6,label:G.has.keycard?(gateSentryUp()?'Main gate: guarded':'Main gate'):'Main gate: needs the keycard (guard office)'};
     case 'tunnel':if(P.y<4)return {x:TEXIT.x,y:TEXIT.y,label:'Tunnel exit'};return {x:DIG.x,y:DIG.y,label:G.tunnel>=1?'Tunnel entrance (Block A)':'Dig spot: under the bunks, Block A'};
     case 'friends':{let b=null,bd=1e9;for(const c of comps){if(c.lost||c.state==='follow'||c.state==='escaped'||c.state==='gone')continue;const d=Math.hypot(c.x-P.x,c.y-P.y);if(d<bd){bd=d;b=c;}}return b&&{x:b.x,y:b.y,label:b.name};}
     case 'trees':{if(isOut(P.y))return null;if(P.y>=44)return {x:clamp(P.x,1.5,42.5),y:50.7,label:'The forest past the tracks'};

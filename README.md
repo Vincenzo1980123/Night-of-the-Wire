@@ -49,6 +49,9 @@ There's no fixed order and no required route.
   - South of the fence, slip past the ramp guard, behind the train and across the tracks into the forest.
   - You need the wire cutters, or a blanket thrown over the barbs. There are only two blankets, on the linen shelf in the infirmary at the far south. Climbing over a blanket is slow (6 seconds) and noisy: guards nearby hear it.
 - **Through the main gate:** the gate keycard (guard office job, or Mira at night) opens the main gate in the north fence, but only while the power is on: its lock is electric.
+  - The card only works until dawn: the codes change every morning, so use it the night you get it.
+  - A guard, Voss, is posted at the gate under a floodlight. He has to be knocked out (from behind, along the fence) or shot before you can use the reader.
+  - The reader and the gate motor take 3½ seconds and are loud: patrolling guards nearby come to look.
 - **Under it:** dig a tunnel under the bunks in Block A, on a skipped day or at night. Each morning's inspection may find it and fill it in.
 - **Work is optional.** At roll call you can *slip away*. The barracks stay safe, but guards who spot you idle in the yard beat you back inside, and the evening count costs +6 Weight.
 - **In daylight:** every action works by day too, but killing the power in daylight sets off the siren at once.
