@@ -181,6 +181,7 @@ body.touch .mode{display:none}
     <button class="mode" data-m="1" type="button"><b>2</b>Sneak</button>
     <button class="mode" data-m="2" type="button"><b>3</b>Sprint</button>
     <button class="iconbtn" id="pauseBtn" type="button" aria-label="Pause">II</button>
+    <button class="iconbtn" id="zoomOut" type="button" aria-label="Zoom out">−</button><button class="iconbtn" id="zoomIn" type="button" aria-label="Zoom in">+</button>
   </div>
   <div id="clock">Day 1 · 06:00</div>
   <div class="meter" id="stamina"><span>Breath</span><span class="bar"><i></i></span></div>
@@ -234,6 +235,7 @@ body.touch .mode{display:none}
       <kbd>E / Space</kbd><span>Act: talk, take, open, knock out a guard from behind. Hold it to work.</span>
       <kbd>Q</kbd><span>Tell your whole group to wait or follow</span>
       <kbd>P / Esc · M</kbd><span>Pause · Sound on/off</span>
+      <kbd>Wheel · + − · 0</kbd><span>Zoom in and out · reset. On a phone: pinch, or the + − buttons.</span>
     </div>
     <p class="note">This game depicts a fictional extermination camp, forced labour and the people it destroys. Nothing graphic is shown, but it is meant to be heavy.</p>
     <div class="row"><button class="btn" id="startBtn" type="button">Roll call</button></div>
@@ -1962,7 +1964,10 @@ const cv=document.getElementById('cv');let ctx=cv.getContext('2d');
 const dk=document.createElement('canvas'),dctx=dk.getContext('2d');
 const mini=document.getElementById('mini'),mctx=mini.getContext('2d');
 const floorCv=document.createElement('canvas'),fctx=floorCv.getContext('2d');
-let VW=0,VH=0,DPR=1,SC=1,FS=1;
+let VW=0,VH=0,DPR=1,SC=1,FS=1,BASE_SC=1,zoomT=0;
+// zoom: wheel or +/- keys on desktop, pinch or the on-screen buttons on phones; remembered per device
+let ZOOM=(()=>{try{return clamp(parseFloat(localStorage.getItem('grauhof.zoom'))||1,0.55,2.5);}catch(e){return 1;}})();
+function setZoom(z){ZOOM=clamp(z,0.55,2.5);SC=BASE_SC*ZOOM;zoomT=performance.now();try{localStorage.setItem('grauhof.zoom',ZOOM.toFixed(3));}catch(e){}}
 const FX0=-H*TW/2-8,FY0=-8,FW=(W+H)*TW/2+16,FH=(W+H)*TH/2+16;
 function resize(){
   const vv=window.visualViewport;
@@ -1970,8 +1975,9 @@ function resize(){
   DPR=Math.min(2,window.devicePixelRatio||1);
   cv.width=dk.width=Math.round(VW*DPR);cv.height=dk.height=Math.round(VH*DPR);
   cv.style.width=VW+'px';cv.style.height=VH+'px';
-  SC=clamp(Math.min(VW,VH)/560,0.8,1.45);
-  if(VH<520)SC=clamp(VH/430,0.78,1.1);
+  BASE_SC=clamp(Math.min(VW,VH)/560,0.8,1.45);
+  if(VH<520)BASE_SC=clamp(VH/430,0.78,1.1);
+  SC=BASE_SC*ZOOM;
 }
 window.addEventListener('resize',resize);
 if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);
@@ -2781,7 +2787,7 @@ function render(){
   if(G.shake>0){G.shakeX=(Math.random()-.5)*G.shake*14;G.shakeY=(Math.random()-.5)*G.shake*14;}else{G.shakeX=G.shakeY=0;}
   ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#05070b';ctx.fillRect(0,0,cv.width,cv.height);
   ctx.imageSmoothingEnabled=false;
-  {const rs=Math.min(2.5,DPR*SC);if(rs!==SPR_RS){SPR.clear();SPR_RS=rs;}}
+  {const rs=Math.min(2.5,Math.round(DPR*SC*4)/4);if(rs!==SPR_RS&&(!SPR_RS||performance.now()-zoomT>350)){SPR.clear();SPR_RS=rs;}}
   worldXf(ctx);
   {// only the part of the ground that's on screen
     const hw=VW/2/SC+40,hh=VH/2/SC+40,wx0=Math.max(FX0,G.camX-hw),wy0=Math.max(FY0,G.camY-hh),wx1=Math.min(FX0+FW,G.camX+hw),wy1=Math.min(FY0+FH,G.camY+hh);
@@ -3024,6 +3030,7 @@ window.addEventListener('keydown',e=>{
   if(k==='e'||k===' '){G.actHeld=true;if(e.repeat)return;}
   if(e.repeat&&k==='q')return;
   if(k==='m'){toggleSound();return;}
+  if(k==='+'||k==='='){setZoom(ZOOM*1.2);return;}if(k==='-'||k==='_'){setZoom(ZOOM/1.2);return;}if(k==='0'){setZoom(1);return;}
   if(!running||G.over||G.phase==='pick')return;
   if(k==='p'||k==='escape'){togglePause();return;}
   if(paused)return;
@@ -3040,6 +3047,10 @@ document.querySelectorAll('.mode').forEach(b=>b.addEventListener('click',()=>{if
 function togglePause(){if(!running||G.over||G.phase==='pick')return;paused=!paused;document.getElementById('sPause').hidden=!paused;}
 function toggleSound(){soundOn=!soundOn;document.getElementById('soundBtn').textContent=soundOn?'Sound on':'Sound off';initAudio();}
 document.getElementById('pauseBtn').onclick=()=>togglePause();
+document.getElementById('zoomIn').onclick=e=>{setZoom(ZOOM*1.2);e.currentTarget.blur();};
+document.getElementById('zoomOut').onclick=e=>{setZoom(ZOOM/1.2);e.currentTarget.blur();};
+cv.addEventListener('wheel',e=>{e.preventDefault();setZoom(ZOOM*Math.pow(1.0015,-e.deltaY));},{passive:false});
+
 document.getElementById('resumeBtn').onclick=()=>togglePause();
 document.getElementById('soundBtn').onclick=()=>toggleSound();
 document.getElementById('chatterBtn').onclick=()=>cycleChatter();document.getElementById('paBtn').onclick=()=>cyclePA();document.getElementById('paBtn').textContent=PA_LABEL[PA_VOL];document.getElementById('chatterBtn').textContent=CHATTER_LABEL[CHATTER];
@@ -3074,6 +3085,12 @@ tz.addEventListener('pointerdown',e=>{
 tz.addEventListener('pointermove',e=>{if(e.pointerId===stickId)moveStick(e);});
 const endStick=e=>{if(e.pointerId!==stickId)return;stickId=null;touchVec={x:0,y:0,on:false};knob.style.transform='';stick.style.left='';stick.style.bottom='';};
 tz.addEventListener('pointerup',endStick);tz.addEventListener('pointercancel',endStick);
+// pinch to zoom: two fingers that land together count as a pinch anywhere on the scene, and the stick lets go meanwhile
+{const down={};let pinch=null;const pts=e=>[...e.touches].filter(t=>!t.target.closest('button,.screen,#tr'));const dd=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+  document.addEventListener('touchstart',e=>{const now=performance.now();for(const t of e.changedTouches)down[t.identifier]=now;const t=pts(e);
+    if(t.length===2&&Math.abs(down[t[0].identifier]-down[t[1].identifier])<260){pinch={d:Math.max(20,dd(t)),z:ZOOM};if(stickId!=null)endStick({pointerId:stickId});}},{passive:true,capture:true});
+  document.addEventListener('touchmove',e=>{const t=pts(e);if(pinch&&t.length===2)setZoom(pinch.z*dd(t)/pinch.d);},{passive:true,capture:true});
+  document.addEventListener('touchend',e=>{for(const t of e.changedTouches)delete down[t.identifier];if(pts(e).length<2)pinch=null;},{passive:true,capture:true});}
 function moveStick(e){let dx=e.clientX-stickO.x,dy=e.clientY-stickO.y;const d=Math.hypot(dx,dy),m=48;if(d>m){dx*=m/d;dy*=m/d;}knob.style.transform=`translate(${dx}px,${dy}px)`;touchVec={x:dx/m,y:dy/m,on:Math.hypot(dx,dy)>8};}
 const tap=(id,fn)=>document.getElementById(id).addEventListener('pointerdown',e=>{e.preventDefault();fn();});
 const bAct=document.getElementById('bAct');

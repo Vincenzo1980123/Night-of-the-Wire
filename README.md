@@ -69,6 +69,7 @@ There's no fixed order and no required route.
 | E / Space (hold to work) | ACT | Talk, take, open, throw a scrap, knock out, shoot |
 | Q | GROUP | Tell your friends to wait or follow |
 | P / Esc, M | II | Pause, sound on/off |
+| Mouse wheel, + / −, 0 | Pinch, or the + / − buttons | Zoom in and out (0 resets; the level is remembered) |
 
 Pause menu: sound, *Chatter* (nearby only / off / all) and *Loudspeakers* (normal / quiet / off).
 
