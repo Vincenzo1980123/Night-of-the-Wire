@@ -284,11 +284,11 @@ const dots=n=>'.'.repeat(n);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
 const MAIN=[
-  'T'+'F'.repeat(30)+'T',                       // 4 outer fence
+  'T'+'F'.repeat(14)+'GG'+'F'.repeat(14)+'T',   // 4 outer fence with the main gate
   'F'+dots(30)+'F',                             // 5
   'F...L'+dots(21)+'L....F',                    // 6
   'F'+dots(30)+'F',                             // 7
-  'F'+'f'.repeat(14)+'GG'+'f'.repeat(14)+'F',   // 8 inner fence + gate
+  'F'+dots(30)+'F',                             // 8
   'F'+dots(30)+'F',                             // 9
   'F.#######...######...########..F',           // 10
   'F.#w..Y.#...#.g..#...#..k...#..F',           // 11 Y workbench
@@ -307,7 +307,7 @@ const MAIN=[
   'F.B.....B...B.....B...B.....B..F',           // 24
   'F.BBBBBBB...BBBBBBB...BBBBBBB..F',           // 25
   'F'+dots(30)+'F',                             // 26
-  'T'+'f'.repeat(13)+'....'+'f'.repeat(13)+'T'    // 27 inner fence, gateway to the south section
+  'T'+dots(30)+'T'                              // 27 open: the south section starts here
 ];
 const EASTR=[
   'F'.repeat(11)+'T',        // 4
@@ -335,7 +335,7 @@ const SOUTH=[
   'F.#.......#..#e...e#..AAAAAA...F...........F', // 30
   'F.#.nn.nn.#..#.....#..AAAAAA...F..L........F', // 31
   'F.#.......#..#e...e#..AAAAAA...F...........F', // 32
-  'F.#.nn...U#..#.....#..AAAAAA...F...........F', // 33
+  'F.#.nn...U#..#...s.#..AAAAAA...F...........F', // 33
   'F.#########..#######...........F...........F', // 34
   'F..........L...........VV....L.F...........F', // 35
   'F.BBBdBBB...BBBdBBB............F...........F', // 36
@@ -446,7 +446,7 @@ const NPC_DEFS=[
   {id:'greta',name:'Greta',kind:'prisoner',x:4.5,y:38.5,sit:true,dir:0.6,day:{x:7.6,y:32.6},lines:["Soup again. Water and the memory of a potato.","The Kantine stove backs onto the yard. A warm wall, a good place to wait for dark.","Guards eat first. We get what they leave in the pot."]},
   {id:'lamm',name:'Doktor Lamm',kind:'prisoner',x:14.5,y:38.6,sit:true,dir:0.4,day:{x:16.5,y:32.6},lines:["I was a doctor once. Now I count who can still stand at roll call.","There's ether in the cabinet. One breath and a big man sleeps till morning.","If they bring you here hurt, don't let them see you limp."]},
   {id:'ivo',name:'Ivo',kind:'vael',x:14.55,y:30.5,lie:true,dir:0,day:{x:14.55,y:30.5},lines:["Water... please.","When the fever doesn't break, they take you east. I know.","Don't stand so close. They check this room at noon."]},
-  {id:'nell',name:'Nell',kind:'vael',x:18.45,y:32.5,lie:true,dir:Math.PI,day:{x:18.45,y:32.5},lines:["My daughter is in Block E. Tell her I'm fine. Lie to her.","I hear the trains at night. More every week."]},
+  {id:'nell',name:'Nell',kind:'vael',x:18.55,y:32.5,lie:true,dir:0,day:{x:18.55,y:32.5},lines:["My daughter is in Block E. Tell her I'm fine. Lie to her.","I hear the trains at night. More every week."]},
   {id:'jost',name:'Jost',kind:'vael',x:16.5,y:39.5,sit:true,dir:3.6,dayRoute:[[20.5,35.5],[27.5,35.5]],lines:["The Wachstube keeps its rifles in a rack by the wall. Get past the man at the door and they're yours.","Trains come at night. The ramp guards watch the wagons, not us.","Every guard carries a rifle now. Knock one out and his rifle is lying right there."]},
   {id:'rusk',name:'Rusk, yard trustee',kind:'trustee',route:[[19.5,16.5],[19.5,19.5],[24.5,19.5],[22.5,15.5]],lines:["Well, well. Out of your block? The guards will love this.","Move along, filth, before I trade you for a cigarette.","You think you're better than me? We all end up as ash. I just eat first."]}
 ];
@@ -497,7 +497,7 @@ function newGame(){
     if(c==='L')LAMPS.push({x:x+.5,y:y+.5});
   }
   G={time:0,day:1,phase:'pick',clock:0,ff:1,job:null,shift:0,shiftDone:false,burden:0,scent:false,armband:false,breaker:false,scraps:0,eastShifts:0,found:[],stains:[],detail:[],eastOpen:false,
-     power:true,alarm:0,lives:3,caught:0,has:{cutters:false,keycard:false,blankets:0,rifle:false,ether:false},ammo:0,rack:2,flashes:[],tunnel:0,goal:null,blanketAt:{},skipped:false,route:null,
+     power:true,alarm:0,lives:3,caught:0,has:{cutters:false,keycard:false,blankets:0,rifle:false,ether:false},ammo:0,rack:2,linen:2,flashes:[],tunnel:0,goal:null,blanketAt:{},skipped:false,route:null,
      flags:{beam:false,office:false,gate:false,fence:false,inner:false},won:false,over:false,fade:0,fadeMsg:'',fadeOut:0,
      spotCd:[0,0,0,0,0,0],start:spawns.S,compHome:{mira:spawns.m,tomas:spawns.t,bram:spawns.b},dialogQ:[],dlg:null,hudKey:'',outside:false,leaveHinted:false,shake:0,
      alarmEvT:85,queue:{active:false,npcs:[],nextT:24,count:0},doorOpen:false,
@@ -556,9 +556,9 @@ const lampsOn=()=>isNight()&&G.power;
 function setTiles(from,to,rowOnly){for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===from&&(rowOnly==null||y===rowOnly))grid[y][x]=to;}
 function startDay(){
   // the camp repairs itself every morning
-  G.power=true;setTiles('q','g');setTiles('_','G',8);setTiles('c','F',4);
+  G.power=true;setTiles('q','g');setTiles('_','G',4);setTiles('c','F',4);
   grid[14][5]='d';grid[14][25]='d';
-  G.flags={beam:false,office:false,gate:false,fence:false,inner:false};setTiles('c','f',8);G.skipped=false;G.blanketAt={};
+  G.flags={beam:false,office:false,gate:false,fence:false,inner:false};G.skipped=false;G.blanketAt={};
   G.alarm=0;G.armband=false;G.job=null;G.shift=0;G.shiftDone=false;G.eastOpen=false;G.detail=[];G.stains=[];G.doorOpen=false;
   G.queue.active=false;G.queue.npcs=[];
   const lost=comps.filter(c=>c.state==='captured');
@@ -1698,22 +1698,22 @@ function tileAction(ch,x,y){
       if(t)return {label:'Ask Tomas to kill the generator',fn:()=>assignWork(t,x,y,3.6,powerOff)};
       if(G.breaker)return {label:'Pull the breaker (third lever)',fn:()=>{P.busy={t:0,time:4*slow(),label:'Third lever',done:powerOff};}};
       return {label:'Generator',fn:()=>showDialog('Aren',"I'd only electrocute myself. Tomas knows this machine. The East detail is said to know the breaker.",4,'whisper')};}
-    case 'G':return G.has.keycard?{label:'Open the inner gate',fn:()=>{setTiles('G','_',8);G.flags.gate=true;sfx('click');sfx('thud',0.5);updateHud(true);}}
-        :{label:'Inner gate',fn:()=>showDialog('Aren',"Card reader. The guard office keeps a spare card.",3.5,'whisper')};
+    case 'G':if(y!==4)return null;
+      if(!G.has.keycard)return {label:'Main gate',fn:()=>showDialog('Aren',"A card reader on an electric lock. The guard office keeps a spare card.",4,'whisper')};
+      if(!G.power)return {label:'Main gate (lock dead)',fn:()=>showDialog('Aren',"No power, no lock. The card is useless while the camp is dark.",4,'whisper')};
+      return {label:'Open the main gate with the keycard',fn:()=>{P.busy={t:0,time:1.8*slow(),label:'Card reader',done:()=>{setTiles('G','_',4);G.flags.gate=true;G.route=G.route||'gate';sfx('click');sfx('thud',0.5);updateHud(true);showDialog('Aren',"The lock clicks. The gate swings open. Walk. Don't run.",4,'whisper');}};}};
     case 'F':if(y!==4||x<1||x>42||x===31)return null;
       if(G.power)return {label:'Outer fence (live)',fn:()=>{showDialog('Aren',"It's humming. Touch that and I'm dead. The power has to go first.",4,'whisper');}};
       if(G.has.cutters)return {label:'Cut through the fence',fn:()=>{P.busy={t:0,time:2.2*slow(),label:'Cutting',done:()=>{grid[y][x]='c';G.flags.fence=true;G.route=G.route||'wire';sfx('snip');crossFence(x,y);updateHud(true);showDialog('Aren',"Through. Into the trees, everyone.",3.5,'whisper');}};}};
       if(G.has.blankets>0)return {label:'Throw a blanket over the wire and climb',fn:()=>{P.busy={t:0,time:3.4*slow(),label:'Climbing',done:()=>{grid[y][x]='c';G.has.blankets--;G.blanketAt[x+','+y]=1;G.flags.fence=true;G.route=G.route||'blanket';sfx('thud',0.4);crossFence(x,y);updateHud(true);showDialog('Aren',"The blanket holds over the barbs. Over, everyone.",3.5,'whisper');}};}};
       return {label:'Outer fence',fn:()=>showDialog('Aren',"Dead wire now. I need cutters, or a blanket to throw over the barbs.",4,'whisper')};
-    case 'f':if(y!==8)return null;
-      if(G.has.blankets>0)return {label:'Throw a blanket over the wire and climb',fn:()=>{P.busy={t:0,time:3.2*slow(),label:'Climbing',done:()=>{grid[y][x]='c';G.has.blankets--;G.blanketAt[x+','+y]=1;G.flags.inner=true;sfx('thud',0.4);crossFence(x,y);updateHud(true);showDialog('Aren',"Over. Barbs through the wool, but it holds. The others can climb where I did.",4,'whisper');}};}};
-      return {label:'Inner fence',fn:()=>showDialog('Aren',"Barbed wire, no current. A blanket thrown over it would let us climb. Or the gate card.",4,'whisper')};
     case 'p':return {label:'Slide the cell bolt',fn:()=>{grid[y][x]='d';computeFloor();sfx('click');for(const c of comps)if(c.state==='captured'){c.state='follow';say(c,c.lines.freed);}updateHud(true);}};
     case 'a':if(G.rack<=0)return {label:'Empty rifle rack',fn:()=>showDialog('Aren',"Empty. They've noticed.",3,'whisper')};
       return {label:'Take a rifle from the rack',fn:()=>{G.rack--;G.has.rifle=true;G.ammo+=8;sfx('pickup');computeFloor();showDialog('Aren',"A rifle and a clip of eight. From now on, every guard who sees me shoots.",5,'whisper');updateHud(true);}};
+    case 's':if(G.linen<=0)return {label:'Empty linen shelf',fn:()=>showDialog('Aren',"Nothing left but bandages.",3,'whisper')};
+      return {label:`Take a blanket (${G.linen} on the shelf)`,fn:()=>{G.linen--;G.has.blankets++;sfx('pickup');computeFloor();showDialog('Aren',G.has.blankets===1?"A thick army blanket from the Lazarett shelf. Thrown over barbed wire, it might be enough to climb.":"Another one. That's all they have.",4.5,'whisper');updateHud(true);}};
     case 'u':{if(!night||x>7||y>25||G.alarm>0||guards.some(g=>g.state==='chase')){
-        if(G.has.blankets>=2)return null;
-        return {label:'Take a blanket',fn:()=>{G.has.blankets++;sfx('pickup');showDialog('Aren',G.has.blankets===1?"A thin blanket under my shirt. Thrown over barbed wire, it might be enough to climb.":"A second blanket. One for each fence.",4,'whisper');updateHud(true);}};}
+        return null;}
       return {label:'Sleep until dawn',fn:()=>{P.sleeping=true;G.ff=10;for(const c of comps)if(c.state==='follow')c.state='wait';showDialog('Aren',"Sleep. If it comes.",2.5,'whisper');}};}
   }
   return null;
@@ -1795,7 +1795,7 @@ function findInteract(){
   const px=Math.floor(P.x),py=Math.floor(P.y);
   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
     const x=px+dx,y=py+dy;if(!inb(x,y))continue;
-    const ch=grid[y][x];if(!'jwokgGFfpua'.includes(ch))continue;
+    const ch=grid[y][x];if(!'jwokgGFpuas'.includes(ch))continue;
     const d=Math.hypot(x+.5-P.x,y+.5-P.y);if(d>1.45)continue;
     const o=tileAction(ch,x,y);if(o)consider(d,Object.assign({},o,{at:{x:x+.5,y:y+.5}}));
   }
@@ -1879,7 +1879,7 @@ function endGame(kind){
     stamp.textContent='Escaped';
     document.getElementById('endTitle').textContent=n===3?'Four of you reach the trees.':n===0?'You run into the trees alone.':`You reach the trees with ${out.map(c=>c.name).join(' and ')}.`;
     let txt=n===3?'Behind you Grauhof is still dark and the chimney is still smoking. The morning roll call will find four empty bunks. You will tell the world what the East Block is for.':n===0?'Freedom smells of pine and rain, and of everyone you left behind. You promise yourself you will tell people what happens behind that wire.':`You carry ${left.join(' and ')}'s names with you. Someone outside has to know.`;
-    const how={tunnel:' You came up through the tunnel you dug with your hands, under their wire.',blanket:' The blanket is still hanging on the barbs behind you.',wire:''}[G.route]||'';
+    const how={gate:' You walked out through their own gate, with their own key.',tunnel:' You came up through the tunnel you dug with your hands, under their wire.',blanket:' The blanket is still hanging on the barbs behind you.',wire:''}[G.route]||'';
     txt+=how+(G.phase==='day'?' You went in broad daylight, with the sirens screaming.':'');
     if(G.found.length)txt+=` In your pocket: ${G.found.join(', ')}.`;
     document.getElementById('endText').textContent=txt;
@@ -1898,8 +1898,8 @@ function objectives(){
   const n=comps.filter(c=>c.recruited&&!c.lost).length;
   return [
     ['The wire: kill the power (Tomas, or the East breaker)',!G.power||G.flags.fence,false,'power'],
-    ['  …past the inner fence (gate keycard, or a blanket over the barbs)',G.flags.gate||G.flags.inner||G.flags.fence,false,'inner'],
-    ['  …over the outer fence (wire cutters, or a blanket)',G.flags.fence,false,'outer'],
+    ['  …then over the outer fence (wire cutters, or a blanket from the Lazarett)',G.flags.fence,false,'outer'],
+    ['Or the main gate: the gate keycard opens it while the power is on',G.flags.gate,true,'gate'],
     [`Or the tunnel under Block A (${Math.floor(G.tunnel*100)}% dug)`,G.tunnel>=1&&G.route==='tunnel'&&G.won,true,'tunnel'],
     [`Optional: bring Mira, Tomas and Bram (${n}/3)`,n===3,true,'friends'],
     ['Reach the trees',G.won,false,'trees']
@@ -2469,6 +2469,10 @@ function drawTileStatic(x,y,ch,bi){
     case 'e':{// an infirmary bed: iron frame, grey blanket, pillow
       for(const [dx,dy] of [[0.1,0.1],[0.84,0.1],[0.1,0.84],[0.84,0.84]])blockS(x+dx,y+dy,x+dx+0.05,y+dy+0.05,0,0.5,[70,74,78]);
       block(x+0.08,y+0.08,x+0.92,y+0.92,0.3,0.38,{tex:'blanket',v:0,edges:false});blockS(x+0.12,y+0.14,x+0.88,y+0.34,0.38,0.44,[222,218,206]);break;}
+    case 's':{block(x+0.1,y+0.62,x+0.9,y+0.92,0,1.25,{tex:'woodDark',v:0,edges:false});
+      for(const z of [0.3,0.7])block(x+0.08,y+0.55,x+0.92,y+0.95,z,z+0.05,{tex:'woodDark',v:1,edges:false});
+      for(let i=0;i<G.linen;i++)block(x+0.18,y+0.6,x+0.82,y+0.9,0.35+i*0.4,0.5+i*0.4,{tex:'blanket',v:1,edges:false});
+      blockS(x+0.2,y+0.62,x+0.45,y+0.88,1.1,1.2,[226,222,212]);break;}
     case 'a':{// the Wachstube rifle rack
       block(x+0.72,y+0.08,x+0.92,y+0.92,0,1.2,{tex:'woodDark',v:0,edges:false});
       for(let i=0;i<G.rack;i++){const yy=y+0.22+i*0.25;line(P3(x+0.7,yy,0.15),P3(x+0.7,yy,1.15),'#3b2a1a',3);line(P3(x+0.69,yy,0.75),P3(x+0.69,yy,1.25),'#2a2c2e',1.6);}
@@ -2535,7 +2539,7 @@ function tileTop(ch,bi){if(bi>=0){const b=BUILDINGS[bi];return b.h+(b.roof==='pi
 function drawTile(x,y,ch,bi){
   if(ch==='O'){if(x===PIT.x0&&y===PIT.y0)drawPitFire();return;}
   const roofed=bi>=0&&!roofCut(bi),night=isNight()?1:0;
-  let ex='';if(ch==='a')ex=G.rack;else if(ch==='D')ex=(G.doorOpen||G.eastOpen?1:0)+''+(pInside?1:0);else if(ch==='R')ex=G.queue.active&&G.queue.npcs.some(n=>n.y>43.2&&n.y<45.6)?1:0;
+  let ex='';if(ch==='a')ex=G.rack;else if(ch==='s')ex=G.linen;else if(ch==='D')ex=(G.doorOpen||G.eastOpen?1:0)+''+(pInside?1:0);else if(ch==='R')ex=G.queue.active&&G.queue.npcs.some(n=>n.y>43.2&&n.y<45.6)?1:0;
   const key=x+','+y+','+ch+','+(roofed?1:0)+night+ex;
   let sp=SPR.get(key);
   if(sp){SPR.delete(key);SPR.set(key,sp);}
@@ -2671,18 +2675,19 @@ function guideKey(){
   const done=Object.fromEntries(objectives().map(o=>[o[3],o[1]]));
   if(G.goal&&!done[G.goal])return G.goal;
   if(G.tunnel>0)return 'tunnel';
-  for(const k of ['power','inner','outer','trees'])if(!done[k])return k;
+  if(G.has.keycard&&G.power&&!done.gate)return 'gate';
+  for(const k of ['power','outer','trees'])if(!done[k])return k;
   return null;
 }
 function guideTarget(){
   const k=guideKey();if(!k)return null;
   if(k==='work')return workTarget();
-  const bunk=()=>{const t=nearestTile('u',P.x,P.y);return t&&{x:t.x,y:t.y,label:'Blankets: on the bunks'};};
+  const bunk=()=>{if(G.linen<=0)return {x:7.5,y:12.4,label:'Wire cutters: the workshop'};const t=nearestTile('s',P.x,P.y);return t&&{x:t.x,y:t.y-0.9,label:'Blankets: the Lazarett linen shelf'};};
   const fenceX=()=>clamp(Math.floor(P.x),2,29)+0.5;
   switch(k){
     case 'power':{const t=nearestTile('gq',P.x,P.y);return t&&{x:t.x,y:t.y,label:G.breaker||compNear('tomas')?'Generator (power house)':'Generator: bring Tomas, or learn the breaker'};}
-    case 'inner':if(G.has.keycard)return {x:15.5,y:8.5,label:'Inner gate'};if(G.has.blankets>0){const fx=fenceX();return {x:fx>14&&fx<17?13.5:fx,y:8.5,label:'Inner fence: climb with a blanket'};}return bunk();
-    case 'outer':if(G.has.cutters||G.has.blankets>0)return {x:fenceX(),y:4.5,label:'Outer fence'};return bunk();
+    case 'outer':if(G.has.cutters||G.has.blankets>0){const fx=fenceX();return {x:fx>14&&fx<17?13.5:fx,y:4.5,label:'Outer fence'};}return bunk();
+    case 'gate':return {x:16,y:4.6,label:G.has.keycard?'Main gate':'Main gate: needs the keycard (guard office)'};
     case 'tunnel':if(P.y<4)return {x:TEXIT.x,y:TEXIT.y,label:'Tunnel exit'};return {x:DIG.x,y:DIG.y,label:G.tunnel>=1?'Tunnel entrance (Block A)':'Dig spot: under the bunks, Block A'};
     case 'friends':{let b=null,bd=1e9;for(const c of comps){if(c.lost||c.state==='follow'||c.state==='escaped'||c.state==='gone')continue;const d=Math.hypot(c.x-P.x,c.y-P.y);if(d<bd){bd=d;b=c;}}return b&&{x:b.x,y:b.y,label:b.name};}
     case 'trees':{const cut=nearestTile('c',P.x,P.y,(x,y)=>y===4);if(P.y<4)return null;if(cut)return {x:cut.x,y:2.6,label:'The trees'};return {x:fenceX(),y:4.5,label:'Outer fence'};}
@@ -2782,7 +2787,8 @@ function render(){
     const top=B_?B_.h+(B_.roof==='pitch'&&!roofCut(bi)?B_.rise:0.1):ch==='T'?3.6:ch==='r'?2.6:ch==='C'?4.6:ch==='L'?2.4:1.8;
     list.push({d:x+y+1,k:0,f:()=>{
       const inFront=x+y+1>pdepth+0.2;
-      const occ=inFront&&((roofCut(bi)&&Math.abs(bs[0]-ps[0])<170)||(Math.abs(bs[0]-ps[0])<52&&bs[1]+18>ps[1]-50&&bs[1]-top*30-18<ps[1]));
+      // inside a building only its walls turn see-through; furniture stays solid
+      const occ=inFront&&((roofCut(bi)&&WALLISH.includes(ch)&&Math.abs(bs[0]-ps[0])<170)||(!roofCut(bi)&&Math.abs(bs[0]-ps[0])<52&&bs[1]+18>ps[1]-50&&bs[1]-top*30-18<ps[1]));
       if(occ)ctx.globalAlpha=roofCut(bi)?0.22:0.32;
       drawTile(x,y,walk?'':ch,bi);ctx.globalAlpha=1;}});
   }
@@ -2793,7 +2799,7 @@ function render(){
   for(const e of people){const p=iso(e.x,e.y);if(Math.abs(p[0]-G.camX)>halfW||Math.abs(p[1]-G.camY)>halfH)continue;
     if(e!==P&&underRoof(e))continue;
     if(inEast(e.x,e.y)&&!pInside&&e!==P)continue;
-    list.push({d:e.x+e.y,k:1,f:()=>e.isDog?drawDog(e):drawPerson(e,e.fall?Math.max(0,1-e.fall.t/0.75):e.down?Math.max(0,Math.min(1,(3.4-e.down.t)/0.9)):undefined)});}
+    list.push({d:e.x+e.y+(e.lie?0.3:0),k:1,f:()=>e.isDog?drawDog(e):drawPerson(e,e.fall?Math.max(0,1-e.fall.t/0.75):e.down?Math.max(0,Math.min(1,(3.4-e.down.t)/0.9)):undefined)});}
   SPR_MAX=Math.max(640,Math.ceil(list.length*2));
   list.sort((a,b)=>a.d-b.d||a.k-b.k);
   for(const it of list)it.f();
@@ -2925,7 +2931,7 @@ function drawMini(){
     for(const c of comps)if(c.state==='idle')mark(Math.floor(c.x),Math.floor(c.y));
     const marks={j:!G.has.cutters,w:G.flags.beam&&!G.has.cutters,o:!G.has.keycard,k:G.flags.office&&!G.has.keycard,g:G.power,G:G.has.keycard&&!G.flags.gate,p:comps.some(c=>c.state==='captured')};
     for(let y=0;y<H;y++)for(let x=0;x<W;x++){const c=grid[y][x];if(marks[c])mark(x,y);}
-    if(G.flags.gate&&!G.flags.fence&&!G.power&&G.has.cutters){mctx.fillStyle=`rgba(240,174,60,${0.3+pulse*0.4})`;mctx.fillRect(3,4*s,30*s,s);}
+    if(!G.flags.fence&&!G.power&&(G.has.cutters||G.has.blankets>0)){mctx.fillStyle=`rgba(240,174,60,${0.3+pulse*0.4})`;mctx.fillRect(3,4*s,30*s,s);}
   }
   mctx.fillStyle='#8a6440';mctx.fillRect(DIG.x*s-1.5,DIG.y*s-1.5,3,3);if(G.tunnel>=1){mctx.fillStyle='#c9a46a';mctx.fillRect(TEXIT.x*s-1.5,TEXIT.y*s-1.5,3,3);}
   if(G.guide){mctx.fillStyle=`rgba(255,190,72,${0.55+pulse*0.45})`;mctx.beginPath();mctx.arc(G.guide.tx*s,G.guide.ty*s,2.6,0,7);mctx.fill();}

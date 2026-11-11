@@ -9,12 +9,14 @@ Open `index.html` in a browser. There's nothing to build or install.
 > Content note: the game depicts a fictional extermination camp, forced labour and the line of people walked into the East Block. Nothing graphic is shown, but it is meant to be heavy.
 
 ## The camp
-- **North:** the inner gate and fence, the workshop, the power house and the guard office.
+- **North:** the main gate in the outer fence, the open strip in front of it, the workshop, the power house and the guard office.
 - **Middle:** Blocks A, B and C, the kitchen yard, the cells, and the passage into the East compound.
-- **South section**, through a gateway in a second inner fence: the Kantine, the Lazarett (infirmary), the water basin with its wash troughs, Blocks D and E, and the Wachstube (guardhouse) with its rifle rack.
+- **South section**, open to the rest of the camp: the Kantine, the Lazarett (infirmary), the water basin with its wash troughs, Blocks D and E, and the Wachstube (guardhouse) with its rifle rack.
 - **East compound:** the East Block and the fire pit, with a long fenced corridor down to the arrivals gate in the south fence.
 - **Outside the south fence:** the railway ramp, a small station, two tracks and a standing train of cattle wagons with a steaming locomotive. At night a whistle announces another line, which walks from the ramp through the arrivals gate to the East Block.
 - Every section has lamp posts with horn loudspeakers, so the day programme carries across the whole camp.
+
+- There are no inner fences: the only fenced area inside the camp is the East compound around the East Block.
 
 ## Rifles
 - **Every guard is armed:** rifle slung on his back on patrol, raised to his shoulder when he chases.
@@ -41,7 +43,7 @@ A working day lasts about 8 minutes (06:00 to 18:00), as long as the loudspeaker
 - **Weight:** what the work does to you. High Weight shortens your breath, slows your hands and brings intrusive thoughts. Talking to people in the barracks at night eases it.
 
 ## How it ends
-- **Escape:** cut the power, open the inner gate, cut the outer fence, and reach the forest with whoever is still with you.
+- **Escape:** cut the power and get over the outer fence, or open the main gate with the keycard while the power is on, or tunnel out. Then reach the forest with whoever is still with you.
 - **Caught:** the first two times you're thrown back in your barrack. The third time, you are put in the line to the East Block. You can't leave the line, and the ending can't be avoided.
 - **Selection:** after the fifth night, Block A is selected. If you've only worked and never escaped, you end up in the line anyway. Five full days played without skipping take about 30 minutes; finishing work early or sleeping through a night makes the time pass faster.
 - **Friends:** friends still in the cells at dawn are taken east and are gone for good.
@@ -49,12 +51,13 @@ A working day lasts about 8 minutes (06:00 to 18:00), as long as the loudspeaker
 ## Your own way out
 Grauhof is open: there's no fixed order and no required route.
 - **Work is optional.** At roll call you can *slip away* instead of taking a job. The barracks stay safe, but any guard who spots you idle in the yard gives you five seconds, then beats you back inside. At the evening count you take +6 Weight.
-- **Through the wire:** kill the power (Tomas, or the breaker the East detail shows you), get past the inner fence (gate keycard, or a blanket over the barbs), then the outer fence (wire cutters, or a blanket).
+- **Through the wire:** kill the power (Tomas, or the breaker the East detail shows you), then get over the dead outer fence with the wire cutters or a blanket thrown over the barbs.
+- **Through the main gate:** the gate keycard (guard office job, or Mira at night) opens the main gate in the outer fence, but only while the power is on: its lock is electric. So the lights and searchlights stay on.
 - **Under it:** dig a tunnel under the bunks in Block A, in a skipped day or at night. It takes about two and a half minutes of digging, and less with Bram helping. Each morning there's a chance the inspection finds it and fills it in.
 - **In daylight:** every action works by day too, but a dead fence in daylight sets off the sirens at once.
 - **Friends are optional.** Recruit Mira, Tomas and Bram and bring them, ask them to come with you even in daylight, or go alone. The ending reflects who made it, how and when.
 - **The fire pit:** beside the East Block a pit burns day and night. Come up behind a guard standing at its edge and you can push him in. Nothing is shown but the fire flaring up. It costs +12 Weight, nearby guards hear it, his dog is loose, and at dawn a replacement takes his post.
-- Blankets come from the bunks (up to two). The "Ways out" panel tracks every route.
+- There are only two blankets, on the linen shelf in the Lazarett at the far south of the camp. The bunks don't give any. The "Ways out" panel tracks every route.
 - **Finding your way:** amber footprints, a floating marker and an edge arrow lead to the current goal. By day that's your work. Otherwise it's the next sensible step, such as the generator, the bunks for blankets, the fence, or the dig spot once you've started the tunnel. Tap any line in "Ways out" to be guided there instead; tap it again to stop. The guide resolves to what you actually need: no keycard and no blanket means it leads you to the bunks first. The dig spot (a loose floorboard in Block A) and the tunnel exit are also shown on the minimap.
 
 ## Visual style
