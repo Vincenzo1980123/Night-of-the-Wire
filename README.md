@@ -8,10 +8,26 @@ Open `index.html` in a browser. There's nothing to build or install.
 
 > Content note: the game depicts a fictional extermination camp, forced labour and the line of people walked into the East Block. Nothing graphic is shown, but it is meant to be heavy.
 
+## The camp
+- **North:** the inner gate and fence, the workshop, the power house and the guard office.
+- **Middle:** Blocks A, B and C, the kitchen yard, the cells, and the passage into the East compound.
+- **South section**, through a gateway in a second inner fence: the Kantine, the Lazarett (infirmary), the water basin with its wash troughs, Blocks D and E, and the Wachstube (guardhouse) with its rifle rack.
+- **East compound:** the East Block and the fire pit, with a long fenced corridor down to the arrivals gate in the south fence.
+- **Outside the south fence:** the railway ramp, a small station, two tracks and a standing train of cattle wagons with a steaming locomotive. At night a whistle announces another line, which walks from the ramp through the arrivals gate to the East Block.
+- Every section has lamp posts with horn loudspeakers, so the day programme carries across the whole camp.
+
+## Rifles
+- **Every guard is armed:** rifle slung on his back on patrol, raised to his shoulder when he chases.
+- **Getting one:** knock a guard out at night and take his rifle (5 rounds), or steal one from the Wachstube rack (8 rounds; there are two).
+- **Shooting:** with a rifle, Act on a guard within about 8 tiles in clear sight shoots him. Accuracy drops with distance. He falls and fades; nothing graphic is shown. The shot sets off the siren, alerts every guard within about 16 tiles, adds +10 Weight and turns his dog loose. A replacement arrives at dawn.
+- **Being armed:** any guard who sees you armed outside a barrack chases you, stops, aims and fires. A hit counts as being caught: you lose a chance and the rifle.
+- **Ether:** the Lazarett job gives you a vial. Your next knockout lasts until morning.
+
 ## A day in Grauhof
 A working day lasts about 8 minutes (06:00 to 18:00), as long as the loudspeaker programme, so every record plays to the end. Nights last 3½ minutes.
 
-- **Roll call (06:00):** choose today's work. Every job helps the oppressor. Some give you something; the heaviest gives you the most.
+- **Roll call (06:00):** choose today's work. The jobs are spread across the camp: the workshop and the guard office in the north, the Kantine, the Lazarett and the laundry at the water basin in the south section, and the East Block detail in the east.
+- Every job helps the oppressor. Some give you something; the heaviest gives you the most.
 - **Finding your work:** once you've chosen, faint amber footprints lead from Aren to the work place along a walkable route, and a marker floats over the spot (visible over roofs). When the spot is out of view, an arrow beside Aren points the way with the distance. Inside the East Block the footprints lead to the next stain. The guide disappears while you work and once the shift is done.
   | Job | Weight | What you gain |
   | --- | --- | --- |
