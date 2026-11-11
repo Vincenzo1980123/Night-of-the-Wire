@@ -2,7 +2,9 @@
 
 An isometric stealth adventure in a single HTML file, playable on desktop and on phones (iPhone included). It's set in **Greywater**, a fictional present-day facility run by a fictional regime, **the Directorate**. People it has labelled undesirable are held there, worked, and eventually taken to the East Block, from which nobody returns. By day you do forced labour that helps the people who keep you there. Whenever you can, you try to get yourself and three friends, Mira, Tomas and Bram, out.
 
-Open `index.html` in a browser. There's nothing to build or install. (Served over http, the game also loads the recordings in `audio/`; opened as a local file, it uses its synthesised fallbacks.)
+**Play it online:** https://vincenzo1980123.github.io/Night-of-the-Wire/ (works on phones too; the real recordings load there).
+
+Or open `index.html` in a browser. There's nothing to build or install. (Served over http, the game also loads the recordings in `audio/`; opened as a local file, it uses its synthesised fallbacks.)
 
 `prototype.html` is the standalone art-direction prototype (a yard, a barrack you can walk into, a character turntable) that the game's look was approved from.
 
