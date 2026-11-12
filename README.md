@@ -98,8 +98,8 @@ There's no fixed order and no required route.
 Pause menu: sound, *Chatter* (nearby only / off / all) and *Loudspeakers* (normal / quiet / off).
 
 ## Visual style
-Mid-1990s European isometric 3D adventure games: polygonal characters in a hand-painted miniature world. All designs are original.
-- **Characters:** low-poly figures with soft Gouraud shading, sculpted heads and individual faces.
+An isometric, hand-painted miniature world with cartoon people in it. All designs are original.
+- **Characters:** big-headed cartoon figures in the style of modern mobile management games: chunky bodies, short limbs, flat toon shading (a lit side and a shadow side), an ink outline, and simple faces with dark dot eyes and bold brows. They are still fully posed 3D figures, so they walk, sneak, work, bow and aim from every angle. The Director's bronze statue keeps a sculpted face.
   - Aren has a freshly shaven head (a faint dark shadow with a hairline) and a goatee.
   - Bram is heavier, darker and bearded.
   - Tomas is grey with glasses.

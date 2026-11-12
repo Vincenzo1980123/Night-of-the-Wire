@@ -2069,6 +2069,8 @@ const cross3=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]
 const LIGHT=norm3([-0.25,0.55,0.8]),CAMV=norm3([1,1,32/30]);
 const shadeN=n=>0.38+0.7*Math.max(0,dot3(n,LIGHT));
 const softN=n=>0.5+0.58*Math.pow((dot3(n,LIGHT)+1)/2,1.35);   // skin: gentle wrap-around falloff
+const toonN=n=>dot3(n,LIGHT)>0.08?1.0:0.8;   // cartoon people: a lit side and a shadow side, nothing in between
+const INK='#1d1713';
 const ENV_TOP=1,ENV_L=0.82,ENV_R=0.62;
 const rgbOf=h=>{h=h.replace('#','');return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];};
 const mixC=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
@@ -2327,7 +2329,7 @@ function boxM(f0,f1,s0,s1,u0,u1,col){const V=[[f0,s0,u0],[f1,s0,u0],[f1,s1,u0],[
 const TQ=[];
 function emit(m,X,alpha,lo){
   const W_=m.V.map(v=>xp(X,v)),S=W_.map(w=>iso(w[0],w[1],w[2])),NW=m.N.map(n=>norm3(mv(X.R,n)));
-  const sh=m.soft?softN:shadeN,wsm=m.soft?0.9:0.8;
+  const sh=m.toon?toonN:m.soft?softN:shadeN,wsm=m.soft?0.9:0.8;
   for(const t of m.T){
     const a=W_[t[0]],b=W_[t[1]],c=W_[t[2]];
     let n=cross3(sub3(b,a),sub3(c,a));const l=Math.hypot(n[0],n[1],n[2]);if(l<1e-12)continue;n=[n[0]/l,n[1]/l,n[2]/l];
@@ -2336,7 +2338,7 @@ function emit(m,X,alpha,lo){
     if(dot3(n,CAMV)<=0)continue;
     const fs=sh(n);let s0=fs,s1=fs,s2=fs;
     if(!m.flat){s0=wsm*sh(na)+(1-wsm)*fs;s1=wsm*sh(nb)+(1-wsm)*fs;s2=wsm*sh(nc)+(1-wsm)*fs;}
-    TQ.push({p0:S[t[0]],p1:S[t[1]],p2:S[t[2]],s0,s1,s2,c:t[3],d:(dot3(a,CAMV)+dot3(b,CAMV)+dot3(c,CAMV))/3+m.bias,al:alpha,r:lo?10:(m.ramp||16),lo});
+    TQ.push({p0:S[t[0]],p1:S[t[1]],p2:S[t[2]],s0,s1,s2,c:t[3],d:(dot3(a,CAMV)+dot3(b,CAMV)+dot3(c,CAMV))/3+m.bias,al:alpha,r:m.toon?5:lo?10:(m.ramp||16),lo});
   }
 }
 function flush(){TQ.sort((a,b)=>a.d-b.d);const m_=ctx.getTransform();ctx.lineWidth=0.9/(Math.hypot(m_.a,m_.b)||1);ctx.lineJoin='round';
@@ -2374,13 +2376,17 @@ function buildHead(L,lo){
   // a freshly shaven scalp is painted straight onto the head: a cool dark shadow where the hair would grow
   const stub=L.stubble?mixC(skin,mixC(hair,[60,62,66],0.35),0.44):null,inScalp=(th,ph)=>th<1.0||(Math.cos(ph)<0.25&&th<1.9)||(Math.cos(ph)<0.6&&th<1.3);  // the front hairline sits well above the brows
   parts.push(lattice(NU,NV,(i,j)=>headPt(j/NV*Math.PI,i/NU*TAU,F),stub?(i,j)=>inScalp((j+0.5)/NV*Math.PI,(i+0.5)/NU*TAU)?stub:skin:skin,{center:[0,0,0],soft:true,ramp:SR}));
-  const nb=headPt(1.5,0,F),ns=F.nose;
+  const TF=!L.statue,nb=headPt(1.5,0,F),ns=F.nose*(TF?0.8:1);
   parts.push(ellip(lo?5:8,lo?3:5,0.054*ns,0.034*ns,0.06*ns,[nb[0]-0.014,0,nb[2]-0.008],mixC(skin,[150,70,50],0.05),{bias:0.03,soft:true,ramp:SR,warp:p=>[p[0]>0?p[0]*1.08:p[0]*0.45,p[1]*(1-0.28*Math.max(0,p[2]/(0.06*ns))),p[2]-0.28*Math.max(0,p[0])]}));
   for(const sg of [1,-1])parts.push(ellip(lo?4:6,lo?2:3,0.042,0.016,0.058,[-0.012,sg*0.15*F.w,-0.012],mixC(skin,[0,0,0],0.05),{soft:true,ramp:SR}));
   const te=1.38,pe=0.37*F.spacing,dt=0.105*F.eyes,dp=0.145*F.eyes;
   const white=L.statue?mixC(skin,[255,255,255],0.06):mixC([232,226,210],skin,0.14),iris=L.iris?rgbOf(L.iris):[52,38,28],pupil=L.statue?mixC(skin,[0,0,0],0.45):[18,14,12],lidC=mixC(skin,[70,44,32],0.16),lash=mixC(skin,[26,18,14],F.lash),browC=L.browC?rgbOf(L.browC):mixC(hair,[0,0,0],0.1);
   const nb_=lo?4:8;
   for(const sg of [1,-1]){const pc=sg*pe;
+    if(TF){// cartoon eyes: a dark oval and a bold brow
+      parts.push(eyePatch(te-0.006,pc-sg*0.012,dt*0.66,dp*0.42,0.0024,mixC(iris,[12,9,7],0.8),0.065,lo?6:10));
+      const bi=te-dt-0.07-F.brow+F.browTilt,bo=te-dt-0.065-F.brow;
+      parts.push(strip(lo?[[bi,sg*0.1*F.spacing],[bo,sg*0.55*F.spacing]]:[[bi,sg*0.09*F.spacing],[(bi+bo)/2-0.014,sg*0.33*F.spacing],[bo,sg*0.58*F.spacing]],F.browW*1.8,0.005,mixC(browC,[0,0,0],0.35),0.085));continue;}
     if(lo){parts.push(eyePatch(te-0.006,pc-sg*0.015,dt*0.62,dp*0.5,0.002,mixC(iris,[20,14,10],0.5),0.06,6));
       parts.push(strip([[te-dt-0.07-F.brow+F.browTilt,sg*0.1*F.spacing],[te-dt-0.07-F.brow,sg*0.55*F.spacing]],F.browW*1.2,0.004,browC,0.08));continue;}
     parts.push(eyePatch(te,pc,dt,dp,0.0012,white,0.05,12));
@@ -2393,7 +2399,7 @@ function buildHead(L,lo){
     parts.push(strip([[bi,sg*0.09*F.spacing],[(bi+bo)/2-0.012,sg*0.33*F.spacing],[bo,sg*0.58*F.spacing]],F.browW,0.004,browC,0.08));
   }
   const mc=1.97,mw=0.17;
-  const fr=F.frown||0;parts.push(strip(lo?[[mc+0.006+fr,-mw],[mc+0.004,0],[mc+0.006+fr,mw]]:[[mc+0.006+fr,-mw],[mc+fr*0.3,-mw*0.4],[mc+0.002,0],[mc+fr*0.3,mw*0.4],[mc+0.006+fr,mw]],0.0105,0.002,mixC(skin,[90,34,30],0.4),0.06));
+  const fr=F.frown||0;parts.push(strip(lo?[[mc+0.006+fr,-mw],[mc+0.004,0],[mc+0.006+fr,mw]]:[[mc+0.006+fr,-mw],[mc+fr*0.3,-mw*0.4],[mc+0.002,0],[mc+fr*0.3,mw*0.4],[mc+0.006+fr,mw]],TF?0.015:0.0105,0.002,mixC(skin,[60,24,20],TF?0.62:0.4),0.06));
   if(F.lip&&!lo)parts.push(strip([[mc+0.03,-mw*0.6],[mc+0.034,0],[mc+0.03,mw*0.6]],0.012,0.0016,mixC(skin,rgbOf(F.lip),0.35),0.055));
   if(F.age>0&&!lo){const ac=mixC(skin,[40,24,18],0.14+0.08*F.age);
     for(const sg of [1,-1])parts.push(strip([[1.66,sg*0.15],[1.8,sg*0.19],[1.93,sg*0.21]],0.006,0.002,ac,0.055));
@@ -2422,7 +2428,7 @@ function buildHead(L,lo){
     parts.push(ellip(6,4,0.02,0.02,0.02,[0.178,0,0.1],[190,160,80]));}
   CURF=FACE0;return parts;
 }
-function buildFigure(L,lo,guard){const F_=buildFigure0(L,lo,guard);const k=L.bulk||1;
+function buildFigure(L,lo,guard){const F_=buildFigure0(L,lo,guard);const k=L.bulk||(L.statue?1:1.1);
   if(L.statue){const tun=mixC(rgbOf(L.shirt),[0,0,0],0.06),dark=mixC(tun,[0,0,0],0.3),gilt=mixC(tun,[255,226,160],0.22),n=lo?8:16;
     // a fitted military tunic: short skirt over the hips, belt and buckle, a cross-strap, buttons, medals, a high collar, epaulettes
     F_.pelvis.push(loft([{u:0.15,rf:0.116,rs:0.152},{u:0.04,rf:0.12,rs:0.157},{u:-0.035,rf:0.123,rs:0.16}],n,tun,{e:2.4,bias:0.012}));
@@ -2440,7 +2446,10 @@ function buildFigure(L,lo,guard){const F_=buildFigure0(L,lo,guard);const k=L.bul
     for(const sd of [1,-1])F_.torso.push(boxM(-0.05,0.06,sd>0?0.09:-0.175,sd>0?0.175:-0.09,0.535,0.556,gilt));
     // tall boots to just under the knee
     for(const k_ of ['L','R'])F_['sn'+k_].push(loft([{u:-0.03,rf:0.066,rs:0.064},{u:-0.15,rf:0.06,rs:0.06},{u:-0.27,rf:0.054,rs:0.054}],lo?6:10,dark,{capT:true,bias:0.01}));}
-if(k!==1)for(const part of ['pelvis','torso'])for(const m of F_[part])m.V=m.V.map(v=>[v[0]*k,v[1]*k,v[2]]);return F_;}
+if(k!==1)for(const part of ['pelvis','torso'])for(const m of F_[part])m.V=m.V.map(v=>[v[0]*k,v[1]*k,v[2]]);for(const part in F_)for(const m of F_[part])m.toon=true;
+  if(!L.statue){for(const part of ['thL','thR','snL','snR'])for(const m of F_[part])m.V=m.V.map(v=>[v[0],v[1],v[2]*LEGK]);for(const part of ['uaL','uaR','laL','laR'])for(const m of F_[part])m.V=m.V.map(v=>[v[0],v[1],v[2]*ARMK]);}
+  return F_;}
+const LEGK=0.87,ARMK=0.9;
 function buildFigure0(L,lo,guard){
   const skin=rgbOf(L.skin),shirt=rgbOf(L.shirt),stripe=L.stripe?rgbOf(L.stripe):null,pants=rgbOf(L.pants);
   const boot=guard?[38,34,30]:L.statue?mixC(rgbOf(L.pants),[0,0,0],0.3):[72,58,44],SR=lo?16:30;
@@ -2516,11 +2525,12 @@ function drawPerson(e,alpha){
   const S=0.93*(e.look.scale||1);
   if(!e.isStatue)drawShadow(e.x,e.y,po.lie?17*S:11*S,po.lie?7*S:5.5*S);
   const root={R:Ry(e.dir).map(v=>v*S),t:[e.x,e.y,e.z||0]};
-  const hip=po.lie?cx(root,cx(Tr(0.32,0,0.14),Ro(Rp(Math.PI/2)))):cx(root,Tr(0,0,0.67-po.drop));
-  const torso=cx(hip,Ro(Rp(-po.lean))),head=cx(torso,cx(Tr(0,0,0.62),cx(Ro(Rp(-po.bow)),Tr(0,0,0.19))));
-  const BK=e.look.bulk||1;
-  const arm=(sd,pt,rl,el)=>{const a=cx(torso,cx(Tr(0,sd*0.2*BK,0.5),cx(Ro(Rr(sd*rl)),Ro(Rp(pt)))));return [a,cx(a,cx(Tr(0,0,-0.26),Ro(Rp(el))))];};
-  const leg=(sd,h,kn)=>{const a=cx(hip,cx(Tr(0,sd*0.085*BK,0),Ro(Rp(h))));return [a,cx(a,cx(Tr(0,0,-0.32),Ro(Rp(-kn))))];};
+  const toonK=!e.look.statue,lk=toonK?LEGK:1,ak=toonK?ARMK:1;
+  const hip=po.lie?cx(root,cx(Tr(0.32,0,0.14),Ro(Rp(Math.PI/2)))):cx(root,Tr(0,0,(toonK?0.585:0.67)-po.drop));
+  const HS=e.look.statue?1.12:1.42,torso=cx(hip,Ro(Rp(-po.lean))),head=cx(torso,cx(Tr(0,0,0.6),cx(Ro(Rp(-po.bow)),cx(Tr(0,0,0.19*HS),Ro([HS,0,0,0,HS,0,0,0,HS])))));
+  const BK=e.look.bulk||(e.look.statue?1:1.1);
+  const arm=(sd,pt,rl,el)=>{const a=cx(torso,cx(Tr(0,sd*0.2*BK,0.5),cx(Ro(Rr(sd*rl)),Ro(Rp(pt)))));return [a,cx(a,cx(Tr(0,0,-0.26*ak),Ro(Rp(el))))];};
+  const leg=(sd,h,kn)=>{const a=cx(hip,cx(Tr(0,sd*0.085*BK,0),Ro(Rp(h))));return [a,cx(a,cx(Tr(0,0,-0.32*lk),Ro(Rp(-kn))))];};
   const [uaL,laL]=arm(1,po.shL,po.rollL,po.elbL),[uaR,laR]=arm(-1,po.shR,po.rollR,po.elbR),[thL,snL]=leg(1,po.hipL,po.kneeL),[thR,snR]=leg(-1,po.hipR,po.kneeR);
   const armed=(e.isGuard&&e.rifle!==false&&!e.gone)||(e===P&&G.has.rifle),aiming=(e.isGuard&&e.state==='chase')||(e===P&&P.aimT>0);
   const M=e[key],body=al=>{const E=(list,X)=>{for(const m of list)emit(m,X,al,lo===1);};
@@ -2535,14 +2545,17 @@ function drawPerson(e,alpha){
   const RS=Math.min(4,DPR*SC),q=v=>Math.round(v*40);
   let pk=lo+'|'+RS+'|'+(armed?1:0)+(aiming?1:0)+'|'+q(e.x)+','+q(e.y)+','+Math.round(e.dir*50);for(const kk in po)pk+=','+q(po[kk]);
   if(pk===e._pk){e._pkN++;}else{e._pk=pk;e._pkN=0;}
-  if(e._pkN<2){body(alpha);}
-  else{
-    if(!e._spr||e._spr.k!==pk){const c0=iso(e.x,e.y),bs=(e.look.scale||1)*BK,zp=(e.z||0)*30,bw=104*bs,bh=104*(e.look.scale||1)+zp,bx=c0[0]-bw/2,by=c0[1]-82*(e.look.scale||1)-zp,w=Math.ceil(bw*RS),h=Math.ceil(bh*RS);
-      let c=e._spr&&e._spr.c;if(!c||c.width!==w||c.height!==h){c=document.createElement('canvas');c.width=w;c.height=h;}
-      const g=c.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,w,h);g.setTransform(RS,0,0,RS,-bx*RS,-by*RS);
+  {
+    if(!e._spr||e._spr.k!==pk){const c0=iso(e.x,e.y),bs=(e.look.scale||1)*BK,zp=(e.z||0)*30,bw=104*bs,bh=104*(e.look.scale||1)+zp,bx=c0[0]-bw/2,by=c0[1]-86*(e.look.scale||1)-zp,pad=Math.ceil(2.5*RS),w=Math.ceil(bw*RS)+2*pad,h=Math.ceil(bh*RS)+2*pad;
+      let c=e._spr&&e._spr.c,o=e._spr&&e._spr.o;if(!c||c.width!==w||c.height!==h){c=document.createElement('canvas');c.width=w;c.height=h;o=document.createElement('canvas');o.width=w;o.height=h;}
+      const g=c.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,w,h);g.setTransform(RS,0,0,RS,-bx*RS+pad,-by*RS+pad);
       const saved=ctx;ctx=g;try{body(undefined);}finally{ctx=saved;}
-      e._spr={c,k:pk,x:bx,y:by,w:w/RS,h:h/RS};}
-    const sp=e._spr,a0=ctx.globalAlpha;if(alpha!=null)ctx.globalAlpha=a0*alpha;ctx.drawImage(sp.c,sp.x,sp.y,sp.w,sp.h);ctx.globalAlpha=a0;
+      // the outline: the figure's silhouette, spread a little in every direction, filled with ink, under the figure
+      const go=o.getContext('2d');go.setTransform(1,0,0,1,0,0);go.globalCompositeOperation='source-over';go.clearRect(0,0,w,h);
+      const r=Math.max(1.3,1.7*RS/Math.max(0.5,SC));for(const [dx,dy] of [[r,0],[-r,0],[0,r],[0,-r]])go.drawImage(c,dx,dy);
+      go.globalCompositeOperation='source-in';go.fillStyle=INK;go.fillRect(0,0,w,h);go.globalCompositeOperation='source-over';go.drawImage(c,0,0);
+      e._spr={c,o,k:pk,x:bx-pad/RS,y:by-pad/RS,w:w/RS,h:h/RS};}
+    const sp=e._spr,a0=ctx.globalAlpha;if(alpha!=null)ctx.globalAlpha=a0*alpha;ctx.drawImage(sp.o,sp.x,sp.y,sp.w,sp.h);ctx.globalAlpha=a0;
   }
   if(e.state==='ko'){const p=iso(e.x,e.y,0.6);ctx.fillStyle='rgba(207,214,255,.8)';ctx.font='11px "Special Elite",monospace';ctx.fillText('z'.repeat(1+((G.time*2|0)%3)),p[0]+6,p[1]-6);}
 }
