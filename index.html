@@ -320,6 +320,18 @@ const hash=(x,y)=>{const s=Math.sin(x*127.1+y*311.7)*43758.5453;return s-Math.fl
 const roadX0=y=>15.5+3.2*Math.sin(y*0.11)+1.4*Math.sin(y*0.27);
 const roadX=y=>{if(y<-3)return roadX0(y);const k=Math.min(1,(y+3)/6.5),e=k*k*(3-2*k);return roadX0(-3)+(16-roadX0(-3))*e;};
 const onRoad=(x,y)=>y<4&&Math.abs(x+0.5-roadX(y+0.5))<1.05;
+// the road as one smooth strip of dirt from y=ya to y=yb, textured like the ground tiles, with soft worn edges
+function roadRibbon(c,ya,yb,zf){const HW=0.82,L=[],Rt=[];
+  for(let y=ya;y<=yb+1e-6;y+=0.2){const x=roadX(y),dx=(roadX(y+0.05)-roadX(y-0.05))/0.1,l=Math.hypot(1,dx),nx=1/l,ny=-dx/l,z=zf?zf(x,y):0;
+    L.push(iso(x-nx*HW,y-ny*HW,z));Rt.push(iso(x+nx*HW,y+ny*HW,z));}
+  const path=(k)=>{c.beginPath();L.forEach((p,i)=>{const q=[p[0]+(Rt[i][0]-p[0])*k,p[1]+(Rt[i][1]-p[1])*k];i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]);});
+    for(let i=Rt.length-1;i>=0;i--){const p=L[i],q=[Rt[i][0]+(p[0]-Rt[i][0])*k,Rt[i][1]+(p[1]-Rt[i][1])*k];c.lineTo(q[0],q[1]);}c.closePath();};
+  // soft edges along the two sides only, so pieces drawn block by block meet without a seam
+  for(const side of [L,Rt]){c.beginPath();side.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.strokeStyle='rgba(70,62,40,.35)';c.lineWidth=5;c.lineJoin='round';c.stroke();}
+  c.save();path(0);c.clip();
+  c.setTransform(...(()=>{const m=c.getTransform();return [m.a,m.b,m.c,m.d,m.e,m.f];})());c.transform(32/TR,16/TR,-32/TR,16/TR,0,0);c.fillStyle=pat(c,'dirt',1);c.fillRect(-120*TR,-120*TR,240*TR,240*TR);c.restore();
+  // two faint wheel ruts
+  for(const k of [0.32,0.68]){c.beginPath();L.forEach((p,i)=>{const q=[p[0]+(Rt[i][0]-p[0])*k,p[1]+(Rt[i][1]-p[1])*k];i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]);});c.strokeStyle='rgba(70,52,34,.22)';c.lineWidth=2.5;c.stroke();}}
 const dots=n=>'.'.repeat(n);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
@@ -2840,7 +2852,7 @@ function landH(x,y){const d=outDist(x,y),ramp=Math.max(0,Math.min(1,(d-2)/7));if
   if(y>=46&&y<=50.5&&(x<=0||x>=W))return 0;
   let h=Math.max(0,lvn(x,y,9,3)*0.7+lvn(x,y,4,9)*0.3-0.3)*7*ramp;
   const ln=lvn(x,y,7,40);if(d>5&&ln<0.34)h*=Math.max(0,(ln-0.27)/0.07);
-  if(y<0&&Math.abs(x-roadX(y))<2.2)h*=0.35;
+  if(y<4){const rd=Math.abs(x-roadX(y));if(rd<3.2){const k=Math.max(0,(rd-1.3)/1.9);h*=k*k*(3-2*k);}}   // the land levels out along the road
   return h;}
 function landTree(c,x,y,z,k,big){const p=iso(x,y,z);
   c.fillStyle='rgba(20,40,10,.28)';c.beginPath();c.ellipse(p[0]+4,p[1]+1,12*k,5*k,0,0,TAU);c.fill();
@@ -2874,11 +2886,17 @@ function landChunk(cx,cy,RSb){
     const pts=[iso(x,y,h00),iso(x+1,y,h10),iso(x+1,y+1,h11),iso(x,y+1,h01)];
     c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();c.fillStyle=css(col,k==='water'?1:lit);c.fill();c.strokeStyle=c.fillStyle;c.lineWidth=0.8;c.stroke();
     // grass and sand get the camp's own ground texture, shaded by the slope
-    if(k==='grass'||k==='road'){c.save();c.clip();face(c,pts[0],pts[1],pts[3],k==='road'?'dirt':'grass',Math.floor(hash(x*1.7,y*2.3)*3),TR,TR,lit);c.restore();}
+    if(k==='grass'||k==='road'){c.save();c.clip();face(c,pts[0],pts[1],pts[3],'grass',Math.floor(hash(x*1.7,y*2.3)*3),TR,TR,lit);c.restore();}
     if(k==='water'&&hash(x*3.3,y*1.9)<0.3){const p=iso(x+0.5,y+0.5,0);c.strokeStyle='rgba(190,205,210,.35)';c.lineWidth=1.4;c.beginPath();c.moveTo(p[0]-9,p[1]);c.quadraticCurveTo(p[0]-4,p[1]-3,p[0],p[1]);c.quadraticCurveTo(p[0]+4,p[1]+3,p[0]+9,p[1]);c.stroke();}
     if(k==='grass'&&hash(x*5.1,y*3.7)<0.06){const p=iso(x+hash(x,y*2),y+hash(x*2,y),(h00+h11)/2);c.fillStyle=['#f2e06a','#ffffff','#e87a9a'][Math.floor(hash(x*7,y)*3)];for(let i=0;i<3;i++)c.fillRect(p[0]+i*3-3,p[1]+(i%2)*2,1.6,1.6);}
     if(k==='rail'){for(let s_=0;s_<3;s_++){const sx=x+0.17+s_*0.33,a=iso(sx-0.07,y+0.12),b=iso(sx+0.07,y+0.12),c2=iso(sx+0.07,y+0.88),d=iso(sx-0.07,y+0.88);c.fillStyle='#4a3a2a';c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.lineTo(c2[0],c2[1]);c.lineTo(d[0],d[1]);c.closePath();c.fill();}
       if(y===48||y===49)for(const ry of [0.3,0.7]){const a=iso(x,y+ry),b=iso(x+1,y+ry);c.strokeStyle='#6e7276';c.lineWidth=2.2;c.beginPath();c.moveTo(a[0],a[1]-1);c.lineTo(b[0],b[1]-1);c.stroke();}}
+  }
+  // the road, as one smooth strip over the ground, before anything that stands on it
+  if(y0<=0){const ya=Math.max(y0-1,-400),yb=Math.min(y0+LCH+1,0.4);let near=false;for(let y=ya;y<=yb;y+=1){const rx=roadX(y);if(rx>x0-3&&rx<x0+LCH+3)near=true;}
+    if(near&&yb>ya)roadRibbon(c,ya,yb,null);}
+  for(const [x,y] of tiles){
+    const k=landKind(x,y),h00=landH(x,y),h10=landH(x+1,y),h11=landH(x+1,y+1),h01=landH(x,y+1);
     // what stands on this tile
     if(k!=='grass')continue;const d=outDist(x+0.5,y+0.5),front=x>=W||y>=H;if(d<(front?4:1.5))continue;
     const hz=(h00+h10+h11+h01)/4,wood=lvn(x,y,6,21),r_=hash(x*1.9+3,y*2.7+1);
@@ -2907,7 +2925,6 @@ function drawLandscape(){
 function floorTexAt(x,y){
   const c=grid[y][x],r=roomAt(x,y),v=Math.floor(hash(x*1.7,y*2.3)*3);
   if(c==='O')return ['ash',v];if(c==='d'||c==='o'||c==='p')return ['doorFloor',0];if(c==='Z')return ['wetFloor',v];if(r&&r.f==='w')return ['woodFloor',v];if(r&&r.f==='cell')return ['cellFloor',v];if(r)return ['concFloor',v];
-  if(onRoad(x,y))return ['dirt',v];
   if(c===','||c==='r'||c==='E'||y<4)return ['grass',v];if(x>=32&&y>=5&&y<=43)return [x===37&&y>=15?'path':'ash',v];
   if(c==='h')return ['concFloor',v];if(c==='H'||c==='Q'||c==='N')return ['gravel',v];if(y>=45)return ['grass',v];if(y>=5&&y<=7)return ['gravel',v];
   if(x<31&&y>=9&&((y===15||y===19)||((x===10||x===11||x===20||x===21)&&y>=15&&y<=19)))return ['path',v];
@@ -2922,6 +2939,7 @@ function buildFloor(){
   fctx.imageSmoothingEnabled=false;fctx.setTransform(1,0,0,1,0,0);fctx.clearRect(0,0,floorCv.width,floorCv.height);fctx.setTransform(FS,0,0,FS,-FX0*FS,-FY0*FS);
   const D=0.55,sl=(pts,col)=>{fctx.beginPath();pts.forEach((p,i)=>i?fctx.lineTo(p[0],p[1]):fctx.moveTo(p[0],p[1]));fctx.closePath();fctx.fillStyle=col;fctx.fill();};
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){const [t,v]=floorTexAt(x,y);face(fctx,iso(x,y),iso(x+1,y),iso(x,y+1),t,v,TR,TR,1);}
+  roadRibbon(fctx,-0.4,4.05,null);
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){const c=grid[y][x];if(!'HQN'.includes(c))continue;
     for(let k=0;k<3;k++){const sx=x+0.17+k*0.33,a=iso(sx-0.07,y+0.12),b=iso(sx+0.07,y+0.12),c2=iso(sx+0.07,y+0.88),d=iso(sx-0.07,y+0.88);
       fctx.fillStyle='#4a3a2a';fctx.beginPath();fctx.moveTo(a[0],a[1]);fctx.lineTo(b[0],b[1]);fctx.lineTo(c2[0],c2[1]);fctx.lineTo(d[0],d[1]);fctx.closePath();fctx.fill();}
