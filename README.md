@@ -21,7 +21,7 @@ The game opens with a short illustrated intro, eight comic-style panels you can 
 7. **The train.** "Resettlement": two days north in a locked shipping container.
 8. **Greywater.** His name, his hair and his violin taken, Aren is given a number. Somewhere out there Nessa is waiting, and someone has to tell the world what happens behind the wire.
 
-All of the intro's artwork is drawn in code in the browser; nothing is loaded.
+The panels are drawn in code in the browser, in the style of 1950s public-information cartoons: big round heads, rubber-hose limbs, white gloves, sunbursts, halftone print and paper grain. Nothing is loaded.
 
 ## The facility
 - **North:** the main gate in the outer fence, the strip in front of it, the workshop, the power house and the guard office.
