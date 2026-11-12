@@ -2522,7 +2522,8 @@ function drawPerson(e,alpha){
   const lo=e===P?0:(e._hi?0:1),key=lo?'meshLo':'meshHi';
   if(!e[key]||e[key+'L']!==e.look){e[key]=buildFigure(e.look,lo,!!e.isGuard);e[key+'L']=e.look;}
   const tp=targetPose(e);if(!e.pose)e.pose=Object.assign({},tp);
-  const pS=e.pose,k=e.moving?1:Math.min(1,frameDt*16);   // walking follows the stride exactly; starting, stopping and posing ease infor(const kk in tp){if(kk==='lie')pS.lie=tp.lie;else pS[kk]+=(tp[kk]-pS[kk])*k;}
+  // walking follows the stride exactly; starting, stopping and posing ease in
+  const pS=e.pose,k=e.moving?1:Math.min(1,frameDt*16);for(const kk in tp){if(kk==='lie')pS.lie=tp.lie;else pS[kk]+=(tp[kk]-pS[kk])*k;}
   // joints snap to small steps and the facing to 48 directions, so the same frames come back and can be reused
   const po={};for(const kk in pS)po[kk]=kk==='lie'?pS.lie:Math.round(pS[kk]*14)/14;
   const DQ=TAU/48,dq=Math.round(e.dir/DQ);
