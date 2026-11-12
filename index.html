@@ -2861,23 +2861,26 @@ function landCottage(c,x,y,z){const q=(a,b,zz)=>iso(x+a,y+b,z+zz),poly=(pts,col)
 function landChunk(cx,cy,RSb){
   const x0=cx*LCH,y0=cy*LCH,HM=5,bx0=iso(x0,y0+LCH)[0]-48,bx1=iso(x0+LCH,y0)[0]+48,by0=iso(x0,y0)[1]-HM*30-70,by1=iso(x0+LCH,y0+LCH)[1]+24;
   const cv_=document.createElement('canvas');cv_.width=Math.ceil((bx1-bx0)*RSb);cv_.height=Math.ceil((by1-by0)*RSb);const c=cv_.getContext('2d');c.setTransform(RSb,0,0,RSb,-bx0*RSb,-by0*RSb);
-  const cols={grass:[96,150,64],sand:[226,206,140],water:[64,142,206],road:[196,164,112],rail:[132,122,108]};
+  const cols={grass:[84,92,56],sand:[150,138,104],water:[62,84,96],road:[120,100,72],rail:[96,88,76]};
   const tiles=[];for(let y=y0;y<y0+LCH;y++)for(let x=x0;x<x0+LCH;x++)if(!(x>=0&&x<W&&y>=0&&y<H))tiles.push([x,y]);
   tiles.sort((a,b)=>a[0]+a[1]-b[0]-b[1]);
   for(const [x,y] of tiles){
     const k=landKind(x,y),h00=landH(x,y),h10=landH(x+1,y),h11=landH(x+1,y+1),h01=landH(x,y+1);
     const n=norm3([(h00+h01-h10-h11)/2,(h00+h10-h01-h11)/2,1]),lit=0.6+0.55*Math.max(0,dot3(n,LIGHT));
-    let col=cols[k];if(k==='grass'){const hh=(h00+h11)/2,v=lvn(x,y,3,77);col=mixC(mixC(col,[150,180,84],Math.min(1,hh/5)),[74,124,58],v*0.55);}
+    let col=cols[k];
     const pts=[iso(x,y,h00),iso(x+1,y,h10),iso(x+1,y+1,h11),iso(x,y+1,h01)];
     c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();c.fillStyle=css(col,k==='water'?1:lit);c.fill();c.strokeStyle=c.fillStyle;c.lineWidth=0.8;c.stroke();
-    if(k==='water'&&hash(x*3.3,y*1.9)<0.35){const p=iso(x+0.5,y+0.5,0);c.strokeStyle='rgba(235,245,255,.55)';c.lineWidth=1.4;c.beginPath();c.moveTo(p[0]-9,p[1]);c.quadraticCurveTo(p[0]-4,p[1]-3,p[0],p[1]);c.quadraticCurveTo(p[0]+4,p[1]+3,p[0]+9,p[1]);c.stroke();}
-    if(k==='grass'&&hash(x*5.1,y*3.7)<0.3){const p=iso(x+hash(x,y*2),y+hash(x*2,y),(h00+h11)/2);c.fillStyle=['#f2e06a','#ffffff','#e87a9a'][Math.floor(hash(x*7,y)*3)];for(let i=0;i<3;i++)c.fillRect(p[0]+i*3-3,p[1]+(i%2)*2,1.6,1.6);}
+    // grass and sand get the camp's own ground texture, shaded by the slope
+    if(k==='grass'||k==='road'){c.save();c.clip();face(c,pts[0],pts[1],pts[3],k==='road'?'dirt':'grass',Math.floor(hash(x*1.7,y*2.3)*3),TR,TR,lit);c.restore();}
+    if(k==='water'&&hash(x*3.3,y*1.9)<0.3){const p=iso(x+0.5,y+0.5,0);c.strokeStyle='rgba(190,205,210,.35)';c.lineWidth=1.4;c.beginPath();c.moveTo(p[0]-9,p[1]);c.quadraticCurveTo(p[0]-4,p[1]-3,p[0],p[1]);c.quadraticCurveTo(p[0]+4,p[1]+3,p[0]+9,p[1]);c.stroke();}
+    if(k==='grass'&&hash(x*5.1,y*3.7)<0.06){const p=iso(x+hash(x,y*2),y+hash(x*2,y),(h00+h11)/2);c.fillStyle=['#f2e06a','#ffffff','#e87a9a'][Math.floor(hash(x*7,y)*3)];for(let i=0;i<3;i++)c.fillRect(p[0]+i*3-3,p[1]+(i%2)*2,1.6,1.6);}
     if(k==='rail'){for(let s_=0;s_<3;s_++){const sx=x+0.17+s_*0.33,a=iso(sx-0.07,y+0.12),b=iso(sx+0.07,y+0.12),c2=iso(sx+0.07,y+0.88),d=iso(sx-0.07,y+0.88);c.fillStyle='#4a3a2a';c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.lineTo(c2[0],c2[1]);c.lineTo(d[0],d[1]);c.closePath();c.fill();}
       if(y===48||y===49)for(const ry of [0.3,0.7]){const a=iso(x,y+ry),b=iso(x+1,y+ry);c.strokeStyle='#6e7276';c.lineWidth=2.2;c.beginPath();c.moveTo(a[0],a[1]-1);c.lineTo(b[0],b[1]-1);c.stroke();}}
     // what stands on this tile
     if(k!=='grass')continue;const d=outDist(x+0.5,y+0.5),front=x>=W||y>=H;if(d<(front?4:1.5))continue;
     const hz=(h00+h10+h11+h01)/4,wood=lvn(x,y,6,21),r_=hash(x*1.9+3,y*2.7+1);
-    if(r_<(wood>0.55?0.55:0.07)){const big=lvn(x,y,5,33)>0.45;landTree(c,x+0.3+hash(x,y*3)*0.4,y+0.3+hash(x*3,y)*0.4,hz,0.85+hash(x*2,y*5)*0.35,big);}
+    if(r_<(wood>0.55?0.5:0.06)){const tx=x+0.3+hash(x,y*3)*0.4,ty=y+0.3+hash(x*3,y)*0.4,pz=iso(tx,ty,hz);c.fillStyle='rgba(0,0,0,.22)';c.beginPath();c.ellipse(pz[0]+6,pz[1]+2,16,6,0,0,TAU);c.fill();
+      const saved=ctx;ctx=c;try{drawMeshAt(TREEMESH,tx,ty,hz,hash(x,y)*TAU,0.95+hash(y,x)*0.25);}finally{ctx=saved;}}
     else if(d>8&&hash(Math.floor(x/LCH)*7.7,Math.floor(y/LCH)*3.1)<0.33&&x%LCH===3&&y%LCH===3&&Math.abs(h00-h11)<0.6)landCottage(c,x,y,hz);
   }
   return {c:cv_,x:bx0,y:by0,w:bx1-bx0,h:by1-by0};

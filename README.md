@@ -109,7 +109,7 @@ An isometric, hand-painted miniature world with cartoon people in it. All design
 - **Environment:**
   - Dithered 64-texel textures: prefab metal barracks, concrete blocks, corrugated roofs, steel fence posts and towers.
   - Construction details, cutaway roofs and cast shadows.
-- **Around the camp:** instead of black, an endless painted countryside in the spirit of 1990s isometric adventures: rolling green hills, lakes with sandy shores, woods of round trees and pines, wild flowers, a winding dirt road to the north, the railway running on, and red-roofed cottages with blue doors. It darkens with the night like everything else.
+- **Around the camp:** instead of black, an endless countryside of rolling hills, quiet lakes, pine woods, a winding dirt road to the north, the railway running on, and a few red-roofed cottages, painted with the same grass, ground and pine trees as the land just outside the fence. It darkens with the night like everything else.
 
 ## Sound
 - **Loudspeakers:** by day, after a modern two-tone chime, the facility PA plays classical recordings: Verdi's **Anvil Chorus** (*Il trovatore*) through the morning's work, then after the midday announcement Mussorgsky's **Bydło** (*Pictures at an Exhibition*, the heavy ox-cart), then quiet until the end-of-work announcement. Opened as a local file, without the recordings, an original synthesised anthem stands in.
