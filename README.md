@@ -10,6 +10,19 @@ Or open `index.html` in a browser. There's nothing to build or install. (Served 
 
 > Content note: the game depicts a fictional detention and extermination facility, forced labour, violence by guards, and people walked into the East Block. Nothing graphic is shown, but it is meant to be heavy. The setting is invented and modern; it deliberately avoids references to any real historical camp or regime.
 
+## The story so far
+The game opens with a short illustrated intro, eight comic-style panels you can tap through or skip, and watch again from the title screen ("The story").
+1. **Saltmere, nine years ago.** In the harbour town of Saltmere, in the invented country of Corvane, the Vael and their neighbours have lived side by side for three hundred years; you can tell a Vael house by its blue door. Aren teaches music at the harbour school; his little sister Nessa wants to be a sailor.
+2. **Hard times.** The mills close and bread runs short. Director Halvar Krenn appears on every screen and names someone to blame.
+3. **The rally.** The Directorate promises Order, Unity and Obedience, and the crowds cheer.
+4. **The registers.** Every Vael family gets a number, and every blue door a grey cross.
+5. **Shut out.** Aren is dismissed from his school; the neighbours turn away.
+6. **The raid.** The trucks come one night in the rain. Aren gets Nessa out through the back window; he is taken.
+7. **The train.** "Resettlement": two days north in a locked shipping container.
+8. **Greywater.** His name, his hair and his violin taken, Aren is given a number. Somewhere out there Nessa is waiting, and someone has to tell the world what happens behind the wire.
+
+All of the intro's artwork is drawn in code in the browser; nothing is loaded.
+
 ## The facility
 - **North:** the main gate in the outer fence, the strip in front of it, the workshop, the power house and the guard office.
 - **Middle:** Blocks A, B and C, the kitchen yard, the cells, and the guarded passage into the East compound.
