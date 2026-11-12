@@ -2491,12 +2491,11 @@ function buildFigure0(L,lo,guard){
   return M;
 }
 function targetPose(e){
-  const t=G.time,ph=e.anim||0,mov=e.moving,prisoner=!e.isGuard;
+  const t=G.time,ph=Math.round((e.anim||0)/(TAU/16))*(TAU/16),mov=e.moving,prisoner=!e.isGuard;   // the stride in 16 steps
   const p={drop:0,lean:prisoner?0.07:-0.03,bow:prisoner?0.1:-0.02,hipL:0,hipR:0,kneeL:0.06,kneeR:0.06,shL:0.04,shR:0.04,elbL:0.22,elbR:0.22,rollL:0.08,rollR:0.08,lie:0};
   if(e.fixedPose)return Object.assign(p,e.fixedPose);
   if(e.state==='ko'||e.lie||(e===P&&P.sleeping)){p.lie=1;return p;}
   if(e.bowT>0||(e===P&&P.busy&&P.busy.label==='Bowing'))return Object.assign(p,{drop:0.06,lean:1.0,bow:0.5,hipL:0.12,hipR:0.12,kneeL:0.2,kneeR:0.2,shL:0.3,shR:0.3,elbL:0.06,elbR:0.06,rollL:0.02,rollR:0.02});
-  p.lean+=Math.sin(t*1.7+(e.y||0)*3)*0.015;
   if(e.sit)return Object.assign(p,{drop:0.44,lean:0.2,bow:0.3,hipL:-1.0,hipR:-1.0,kneeL:2.3,kneeR:2.3,shL:0.55,shR:0.55,elbL:0.7,elbR:0.7,rollL:0.15,rollR:0.15});
   const companionTask=e.state==='work'&&e.work&&e.work.started;
   if(e.working||companionTask){
@@ -2517,14 +2516,19 @@ function targetPose(e){
 }
 function drawShadow(x,y,rx,ry){const p=iso(x,y);ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(p[0]+2,p[1]+1,rx,ry,0,0,TAU);ctx.fill();}
 // people near Aren get full faces; people further away a lighter version of the same model
+// painted figure frames, shared by everyone with the same look, least recently used dropped first
+const FIGC=new Map();let FIG_PX=0,FIG_SCR=null,LOOK_ID=0;const FIG_PX_MAX=24e6;
 function drawPerson(e,alpha){
   const lo=e===P?0:(e._hi?0:1),key=lo?'meshLo':'meshHi';
   if(!e[key]||e[key+'L']!==e.look){e[key]=buildFigure(e.look,lo,!!e.isGuard);e[key+'L']=e.look;}
   const tp=targetPose(e);if(!e.pose)e.pose=Object.assign({},tp);
-  const po=e.pose,k=Math.min(1,frameDt*16);for(const kk in tp){if(kk==='lie')po.lie=tp.lie;else po[kk]+=(tp[kk]-po[kk])*k;}
+  const pS=e.pose,k=e.moving?1:Math.min(1,frameDt*16);   // walking follows the stride exactly; starting, stopping and posing ease infor(const kk in tp){if(kk==='lie')pS.lie=tp.lie;else pS[kk]+=(tp[kk]-pS[kk])*k;}
+  // joints snap to small steps and the facing to 48 directions, so the same frames come back and can be reused
+  const po={};for(const kk in pS)po[kk]=kk==='lie'?pS.lie:Math.round(pS[kk]*14)/14;
+  const DQ=TAU/48,dq=Math.round(e.dir/DQ);
   const S=0.93*(e.look.scale||1);
   if(!e.isStatue)drawShadow(e.x,e.y,po.lie?17*S:11*S,po.lie?7*S:5.5*S);
-  const root={R:Ry(e.dir).map(v=>v*S),t:[e.x,e.y,e.z||0]};
+  const root={R:Ry(dq*DQ).map(v=>v*S),t:[0,0,e.z||0]};
   const toonK=!e.look.statue,lk=toonK?LEGK:1,ak=toonK?ARMK:1;
   const hip=po.lie?cx(root,cx(Tr(0.32,0,0.14),Ro(Rp(Math.PI/2)))):cx(root,Tr(0,0,(toonK?0.585:0.67)-po.drop));
   const HS=e.look.statue?1.12:1.42,torso=cx(hip,Ro(Rp(-po.lean))),head=cx(torso,cx(Tr(0,0,0.6),cx(Ro(Rp(-po.bow)),cx(Tr(0,0,0.19*HS),Ro([HS,0,0,0,HS,0,0,0,HS])))));
@@ -2541,22 +2545,24 @@ function drawPerson(e,alpha){
       const X=aiming?cx(laR,cx(Tr(0.05,0,0.24),Ro(Rp(Math.PI)))):cx(torso,cx(Tr(-0.15,0,0.02),Ro(Rr(-0.55))));
       E(RIFLEMESH,X);}
     flush();};
-  // someone standing still is painted once into a small sprite and reused until they move or change posture
-  const RS=Math.min(4,DPR*SC),q=v=>Math.round(v*40);
-  let pk=lo+'|'+RS+'|'+(armed?1:0)+(aiming?1:0)+'|'+q(e.x)+','+q(e.y)+','+Math.round(e.dir*50);for(const kk in po)pk+=','+q(po[kk]);
-  if(pk===e._pk){e._pkN++;}else{e._pk=pk;e._pkN=0;}
-  {
-    if(!e._spr||e._spr.k!==pk){const c0=iso(e.x,e.y),bs=(e.look.scale||1)*BK,zp=(e.z||0)*30,bw=104*bs,bh=104*(e.look.scale||1)+zp,bx=c0[0]-bw/2,by=c0[1]-86*(e.look.scale||1)-zp,pad=Math.ceil(2.5*RS),w=Math.ceil(bw*RS)+2*pad,h=Math.ceil(bh*RS)+2*pad;
-      let c=e._spr&&e._spr.c,o=e._spr&&e._spr.o;if(!c||c.width!==w||c.height!==h){c=document.createElement('canvas');c.width=w;c.height=h;o=document.createElement('canvas');o.width=w;o.height=h;}
-      const g=c.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,w,h);g.setTransform(RS,0,0,RS,-bx*RS+pad,-by*RS+pad);
-      const saved=ctx;ctx=g;try{body(undefined);}finally{ctx=saved;}
-      // the outline: the figure's silhouette, spread a little in every direction, filled with ink, under the figure
-      const go=o.getContext('2d');go.setTransform(1,0,0,1,0,0);go.globalCompositeOperation='source-over';go.clearRect(0,0,w,h);
-      const r=Math.max(1.3,1.7*RS/Math.max(0.5,SC));for(const [dx,dy] of [[r,0],[-r,0],[0,r],[0,-r]])go.drawImage(c,dx,dy);
-      go.globalCompositeOperation='source-in';go.fillStyle=INK;go.fillRect(0,0,w,h);go.globalCompositeOperation='source-over';go.drawImage(c,0,0);
-      e._spr={c,o,k:pk,x:bx-pad/RS,y:by-pad/RS,w:w/RS,h:h/RS};}
-    const sp=e._spr,a0=ctx.globalAlpha;if(alpha!=null)ctx.globalAlpha=a0*alpha;ctx.drawImage(sp.o,sp.x,sp.y,sp.w,sp.h);ctx.globalAlpha=a0;
+  // every frame of a figure is painted once, outlined, and kept: the same pose and facing later is a single image draw
+  const RS=Math.min(4,Math.round(DPR*SC*4)/4);if(!e.look._id)e.look._id=++LOOK_ID;
+  let pk=e.look._id+'|'+lo+(e.isGuard?'g':'')+'|'+RS+'|'+(armed?1:0)+(aiming?1:0)+'|'+dq;for(const kk in po)pk+=','+Math.round(po[kk]*14);
+  let sp=FIGC.get(pk);
+  if(sp){FIGC.delete(pk);FIGC.set(pk,sp);}
+  else{
+    const sc=e.look.scale||1,bs=sc*BK,zp=(e.z||0)*30,bw=(po.lie?112:armed?96:76)*bs,top=(po.lie?52:84)*sc+zp,bot=po.lie?30:16,bx=-bw/2,by=-top,pad=Math.ceil(2.5*RS),w=Math.ceil(bw*RS)+2*pad,h=Math.ceil((top+bot)*RS)+2*pad;
+    if(!FIG_SCR||FIG_SCR.width<w||FIG_SCR.height<h){FIG_SCR=document.createElement('canvas');FIG_SCR.width=Math.max(w,FIG_SCR?FIG_SCR.width:0);FIG_SCR.height=Math.max(h,FIG_SCR?FIG_SCR.height:0);}
+    const g=FIG_SCR.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,w,h);g.setTransform(RS,0,0,RS,-bx*RS+pad,-by*RS+pad);
+    const saved=ctx;ctx=g;try{body(undefined);}finally{ctx=saved;}
+    // the outline: the figure's silhouette, spread a little each way, filled with ink, under the figure
+    const o=document.createElement('canvas');o.width=w;o.height=h;const go=o.getContext('2d');
+    const r=Math.max(1.3,1.7*RS/Math.max(0.5,SC));for(const [dx,dy] of [[r,0],[-r,0],[0,r],[0,-r]])go.drawImage(FIG_SCR,0,0,w,h,dx,dy,w,h);
+    go.globalCompositeOperation='source-in';go.fillStyle=INK;go.fillRect(0,0,w,h);go.globalCompositeOperation='source-over';go.drawImage(FIG_SCR,0,0,w,h,0,0,w,h);
+    sp={o,x:bx-pad/RS,y:by-pad/RS,w:w/RS,h:h/RS,px:w*h};FIGC.set(pk,sp);FIG_PX+=sp.px;
+    while(FIG_PX>FIG_PX_MAX&&FIGC.size>1){const [k0,v0]=FIGC.entries().next().value;FIGC.delete(k0);FIG_PX-=v0.px;}
   }
+  {const c0=iso(e.x,e.y),a0=ctx.globalAlpha;if(alpha!=null)ctx.globalAlpha=a0*alpha;ctx.drawImage(sp.o,c0[0]+sp.x,c0[1]+sp.y,sp.w,sp.h);ctx.globalAlpha=a0;}
   if(e.state==='ko'){const p=iso(e.x,e.y,0.6);ctx.fillStyle='rgba(207,214,255,.8)';ctx.font='11px "Special Elite",monospace';ctx.fillText('z'.repeat(1+((G.time*2|0)%3)),p[0]+6,p[1]-6);}
 }
 let RIFLEMESH=null;
@@ -2945,7 +2951,7 @@ function render(){
   if(G.shake>0){G.shakeX=(Math.random()-.5)*G.shake*14;G.shakeY=(Math.random()-.5)*G.shake*14;}else{G.shakeX=G.shakeY=0;}
   ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#05070b';ctx.fillRect(0,0,cv.width,cv.height);
   ctx.imageSmoothingEnabled=false;
-  {const rs=Math.min(2.5,Math.round(DPR*SC*4)/4);if(rs!==SPR_RS&&(!SPR_RS||performance.now()-zoomT>350)){SPR.clear();SPR_RS=rs;}}
+  {const rs=Math.min(2.5,Math.round(DPR*SC*4)/4);if(rs!==SPR_RS&&(!SPR_RS||performance.now()-zoomT>350)){SPR.clear();SPR_RS=rs;FIGC.clear();FIG_PX=0;}}
   worldXf(ctx);
   {// only the part of the ground that's on screen
     const hw=VW/2/SC+40,hh=VH/2/SC+40,wx0=Math.max(FX0,G.camX-hw),wy0=Math.max(FY0,G.camY-hh),wx1=Math.min(FX0+FW,G.camX+hw),wy1=Math.min(FY0+FH,G.camY+hh);
