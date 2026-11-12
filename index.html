@@ -593,7 +593,8 @@ function mkGuard(route,seed,post){
 }
 function resetGuards(){
   for(const g of guards){g.aimT=0;if(g.gone)continue;g.rifle=true;g.down=null;g.state='patrol';g.target=null;g.susp=0;g.warnT=null;g.path=null;g.koT=0;g.retWp=null;g.x=g.route[0].x;g.y=g.route[0].y;g.wp=0;g.pause=0;}
-  for(const d of dogs){d.state='heel';d.target=null;d.alertT=0;d.eatT=0;d.x=d.handler.x+0.7;d.y=d.handler.y+0.7;d.path=null;}
+  {const shot=dogs.filter(d=>d.dead);if(shot.length)G.news.push(`The handlers have new dogs. They are angrier than the old ones.`);}
+  for(const d of dogs){d.dead=false;d.down=null;d.state='heel';d.target=null;d.alertT=0;d.eatT=0;d.x=d.handler.x+0.7;d.y=d.handler.y+0.7;d.path=null;}
 }
 
 /* ================= day & night ================= */
@@ -1347,7 +1348,7 @@ function startChase(g,t){
   g.state='chase';g.target=t;g.lastSeen={x:t.x,y:t.y};g.lost=0;g.susp=1;g.warnT=null;
   G.alarm=Math.max(G.alarm,12);
   for(const o of guards)if(o!==g&&o.state!=='ko'&&o.state!=='chase'&&dist(o,g)<10){o.state='suspicious';o.lastSeen={x:t.x,y:t.y};o.susp=0.7;o.lookT=6;}
-  for(const d of dogs)if(d.handler===g&&d.state!=='chase'&&d.eatT<=0){d.state='chase';d.target=t;d.last={x:t.x,y:t.y};d.lost=0;}
+  for(const d of dogs)if(d.handler===g&&!d.dead&&d.state!=='chase'&&d.eatT<=0){d.state='chase';d.target=t;d.last={x:t.x,y:t.y};d.lost=0;}
 }
 function capture(t,by){
   for(const o of guards)if(o.target===t){o.state='return';o.target=null;o.path=null;o.susp=0;o.warnT=null;}
@@ -1632,6 +1633,7 @@ function updateGuard(g,dt){
   }
 }
 function updateDog(d,dt){
+  if(d.dead){d.moving=false;if(d.down){d.down.t+=dt;if(d.down.t>1.4){d.down=null;d.x=-70;d.y=-70;}}return;}
   if(d.bubble){d.bubble.t-=dt;if(d.bubble.t<=0)d.bubble=null;}
   const h=d.handler;const loose=h.state==='ko';
   if(d.eatT>0){d.eatT-=dt;d.moving=false;d.anim+=dt*4;if(d.eatT<=0)d.state='heel';return;}
@@ -1822,7 +1824,8 @@ function findInteract(){
   }
   // armed: shoot the nearest guard in sight
   if(G.has.rifle&&G.ammo>0){let tg=null,td=8;for(const g of guards){if(g.state==='ko'||g.gone)continue;const d=dist(g,P);if(d<td&&los(P.x,P.y,g.x,g.y)){td=d;tg=g;}}
-    if(tg)consider(td+0.6,{at:tg,label:`Shoot Guard ${tg.name} (${G.ammo})`,fn:()=>fireRifle(tg)});}
+    for(const dg of dogs){if(dg.dead)continue;const d=dist(dg,P);if(d<Math.min(td,7)&&los(P.x,P.y,dg.x,dg.y)){td=d;tg=dg;}}
+    if(tg)consider(td+0.6,{at:tg,label:tg.isDog?`Shoot the dog ${tg.name} (${G.ammo})`:`Shoot Guard ${tg.name} (${G.ammo})`,fn:()=>tg.isDog?shootDog(tg):fireRifle(tg)});}
   for(const g of guards){
     if(g.state==='ko'||g.state==='chase')continue;
     const d=dist(g,P);if(d>1.4)continue;
@@ -1860,6 +1863,18 @@ function gunshot(x,y,vol=1){
     n.connect(fl).connect(lp).connect(g).connect(master);g.connect(BARKVERB);n.start(at,Math.random()*0.4,dec+0.05);};
   hit('highpass',900,0.7,0.9*v,0.13,t,d>10);hit('lowpass',230,0.6,0.85*v,0.5,t,d>10);
   hit('bandpass',700,0.8,0.22*v,0.35,t+0.42,true);hit('bandpass',500,0.8,0.12*v,0.4,t+0.95,true); // the shot rolls back off the barracks
+}
+function shootDog(d){
+  G.ammo--;P.aimT=0.7;P.dir=Math.atan2(d.y-P.y,d.x-P.x);gunshot(P.x,P.y);G.flashes.push({x:P.x,y:P.y,dir:P.dir,t:0.09});G.shake=0.35;
+  const dd=dist(d,P),p_=dd<2.5?0.95:Math.max(0.25,0.9-(dd-2.5)*0.15);
+  if(Math.random()<p_){d.dead=true;d.down={t:0};d.state='dead';d.target=null;d.moving=false;d.bubble=null;G.burden=Math.min(100,G.burden+6);sfx('thud',0.35);
+    showDialog('Aren',pick(["The dog dropped. It was only doing what they taught it.","One shot. The barking stopped.","It never chose any of this either."]),4,'whisper');
+    const h=d.handler;if(h&&h.state!=='ko'&&!h.gone){h.state='suspicious';h.lastSeen={x:P.x,y:P.y};h.susp=1;h.lookT=10;say(h,pick([`${d.name}! You'll pay for that.`,`They shot ${d.name}! Find him!`]));}}
+  else{showDialog('Aren','Missed.',2,'whisper');if(!d.dead){d.state='chase';d.target=P;d.last={x:P.x,y:P.y};d.lost=0;}}
+  G.alarm=Math.max(G.alarm,40);G.sirenT=Math.max(G.sirenT||0,14);
+  for(const o of guards)if(o.state!=='ko'&&!o.gone&&dist(o,P)<16){o.state='suspicious';o.lastSeen={x:P.x,y:P.y};o.susp=0.9;o.lookT=8;}
+  if(!G.hints.shot){G.hints.shot=true;queueDialog('hint',"The whole camp heard that. The siren is going, and every guard nearby is coming. Move.",5);}
+  updateHud(true);
 }
 function fireRifle(g){
   G.ammo--;P.aimT=0.7;P.dir=Math.atan2(g.y-P.y,g.x-P.x);gunshot(P.x,P.y);G.flashes.push({x:P.x,y:P.y,dir:P.dir,t:0.09});G.shake=0.35;
@@ -2576,14 +2591,14 @@ function dogMesh(){const dk=[46,38,32],tan=[146,102,60],tw=(i,j)=>j>=3?tan:dk;
     leg:[loft([{u:0,rf:0.036,rs:0.036},{u:-0.16,rf:0.03,rs:0.03},{u:-0.3,rf:0.028,rs:0.028}],6,dk),ellip(6,4,0.04,0.032,0.022,[0.015,0,-0.32],tan)],
     tail:[loft([{u:0,rf:0.03,rs:0.03},{u:0.26,rf:0.012,rs:0.012}],6,dk,{capT:true})]};}
 function drawDog(d){
-  if(!DOGMESH)DOGMESH=dogMesh();const M=DOGMESH;drawShadow(d.x,d.y,13,5);
-  const root={R:Ry(d.dir).map(v=>v*0.95),t:[d.x,d.y,0]},sw=d.moving?(d.state==='chase'?0.7:0.45):0,ph=(d.anim||0)*1.6;
+  if(!DOGMESH)DOGMESH=dogMesh();const M=DOGMESH;const a0=ctx.globalAlpha;if(d.down)ctx.globalAlpha=a0*Math.max(0,1-d.down.t/1.2);drawShadow(d.x,d.y,13,5);
+  const root={R:(d.down?mm(Ry(d.dir),Rr(Math.min(1,d.down.t/0.35)*1.45)):Ry(d.dir)).map(v=>v*0.95),t:[d.x,d.y,d.down?Math.min(1,d.down.t/0.35)*0.12:0]},sw=d.moving?(d.state==='chase'?0.7:0.45):0,ph=(d.anim||0)*1.6;
   const eating=d.eatT>0,alert=d.alertT>0||d.state==='chase',lo=Math.hypot(d.x-P.x,d.y-P.y)>3.5;
   for(const m of M.body)emit(m,root,undefined,lo);
   for(const m of M.head)emit(m,cx(root,cx(Tr(0.32,0,0.54),Ro(Rp(eating?0.9:alert?-0.15:0.1+Math.sin(G.time*2+d.x)*0.08)))),undefined,lo);
   for(const [f,s,o] of [[0.2,0.075,0],[0.2,-0.075,Math.PI],[-0.2,0.075,Math.PI],[-0.2,-0.075,0]])for(const m of M.leg)emit(m,cx(root,cx(Tr(f,s,0.37),Ro(Rp(Math.sin(ph+o)*sw)))),undefined,lo);
   for(const m of M.tail)emit(m,cx(root,cx(Tr(-0.28,0,0.46),cx(Ro(Rr(Math.sin(G.time*(d.state==='chase'?14:4))*0.35)),Ro(Rp(alert?1.2:0.9))))),undefined,lo);
-  flush();
+  flush();ctx.globalAlpha=a0;
 }
 let TREEMESH=null,CAULDRON=null,TOWERROOF=null,LAMPSHADE=null;
 function propMeshes(){
@@ -2807,6 +2822,81 @@ function drawFence(x,y,ch){
   block(x+0.46,y+0.46,x+0.54,y+0.54,0,1.5,{tex:'steel',v:(x+y)%2,edges:false});
 }
 function coneRays(g,range){const pts=[[g.x,g.y]],n=14;for(let i=0;i<=n;i++){const a=g.dir-0.62+1.24*i/n,cx_=Math.cos(a),cy_=Math.sin(a);let r=0;while(r<range){r+=0.2;if(opaque(Math.floor(g.x+cx_*r),Math.floor(g.y+cy_*r))){r-=0.1;break;}}pts.push([g.x+cx_*r,g.y+cy_*r]);}return pts;}
+/* ---------- the country around the camp: green hills, lakes, woods and cottages, painted in 8x8-tile blocks as they come into view ---------- */
+const LCH=8,LAND=new Map();let LAND_RS=0;
+const lvn=(x,y,s,o=0)=>{x/=s;y/=s;const xi=Math.floor(x),yi=Math.floor(y),fx=x-xi,fy=y-yi,u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy),h_=(a,b)=>hash(a*1.37+o,b*2.11-o);
+  return h_(xi,yi)*(1-u)*(1-v)+h_(xi+1,yi)*u*(1-v)+h_(xi,yi+1)*(1-u)*v+h_(xi+1,yi+1)*u*v;};
+const outDist=(x,y)=>Math.max(-x,x-W,-y,y-H,0);
+const roadX=y=>15.5+3.2*Math.sin(y*0.11)+1.4*Math.sin(y*0.27);
+function landKind(x,y){const d=outDist(x+0.5,y+0.5);
+  if(y>=47&&y<=49&&(x<0||x>=W))return 'rail';
+  if(y<0&&Math.abs(x+0.5-roadX(y+0.5))<0.9)return 'road';
+  const ln=lvn(x,y,7,40);if(d>5&&ln<0.27)return 'water';if(d>5&&ln<0.31)return 'sand';
+  return 'grass';}
+function landH(x,y){const d=outDist(x,y),ramp=Math.max(0,Math.min(1,(d-2)/7));if(ramp<=0)return 0;
+  if(y>=46&&y<=50.5&&(x<=0||x>=W))return 0;
+  let h=Math.max(0,lvn(x,y,9,3)*0.7+lvn(x,y,4,9)*0.3-0.3)*7*ramp;
+  const ln=lvn(x,y,7,40);if(d>5&&ln<0.34)h*=Math.max(0,(ln-0.27)/0.07);
+  if(y<0&&Math.abs(x-roadX(y))<2.2)h*=0.35;
+  return h;}
+function landTree(c,x,y,z,k,big){const p=iso(x,y,z);
+  c.fillStyle='rgba(20,40,10,.28)';c.beginPath();c.ellipse(p[0]+4,p[1]+1,12*k,5*k,0,0,TAU);c.fill();
+  if(big){// a round, friendly tree
+    c.fillStyle='#6a4426';c.fillRect(p[0]-2*k,p[1]-16*k,4*k,16*k);
+    const cy=p[1]-27*k,r=14*k;c.fillStyle='#2f7a2c';c.beginPath();c.arc(p[0],cy,r,0,TAU);c.fill();
+    c.fillStyle='#4fa63a';c.beginPath();c.arc(p[0]-3*k,cy-3*k,r*0.78,0,TAU);c.fill();c.fillStyle='#8fd05a';c.beginPath();c.arc(p[0]-6*k,cy-7*k,r*0.32,0,TAU);c.fill();
+    c.strokeStyle='rgba(20,50,16,.6)';c.lineWidth=1.2;c.beginPath();c.arc(p[0],cy,r,0,TAU);c.stroke();}
+  else{// a pine
+    c.fillStyle='#5a3a22';c.fillRect(p[0]-1.5*k,p[1]-8*k,3*k,8*k);
+    for(let i=0;i<3;i++){const by=p[1]-6*k-i*9*k,w=(13-i*3.5)*k;c.fillStyle=i===2?'#3e8a3a':'#2a6a30';c.beginPath();c.moveTo(p[0]-w,by);c.lineTo(p[0],by-15*k);c.lineTo(p[0]+w,by);c.closePath();c.fill();
+      c.fillStyle='rgba(160,220,120,.25)';c.beginPath();c.moveTo(p[0]-w*0.8,by-1);c.lineTo(p[0],by-14*k);c.lineTo(p[0]-w*0.1,by-1);c.closePath();c.fill();}}}
+function landCottage(c,x,y,z){const q=(a,b,zz)=>iso(x+a,y+b,z+zz),poly=(pts,col)=>{c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();c.fillStyle=col;c.fill();c.strokeStyle='rgba(40,30,20,.5)';c.lineWidth=1;c.stroke();};
+  const w=1.3,dd=1.0,h=0.75;
+  c.fillStyle='rgba(20,40,10,.25)';{const p=q(w/2+0.3,dd/2+0.3,0);c.beginPath();c.ellipse(p[0],p[1],38,14,0,0,TAU);c.fill();}
+  poly([q(0,dd,0),q(w,dd,0),q(w,dd,h),q(0,dd,h)],'#f2ead6');poly([q(w,0,0),q(w,dd,0),q(w,dd,h),q(w,0,h)],'#d8ccb2');
+  poly([q(0,dd,h),q(w,dd,h),q(w,dd/2,h+0.55),q(0,dd/2,h+0.55)],'#c8482e');poly([q(w,0,h),q(w,dd/2,h+0.55),q(w,dd,h)],'#a83a26');
+  poly([q(0.55,dd,0),q(0.8,dd,0),q(0.8,dd,0.42),q(0.55,dd,0.42)],'#2d6cd8');
+  for(const a of [0.18,1.0])poly([q(a,dd,0.38),q(a+0.18,dd,0.38),q(a+0.18,dd,0.58),q(a,dd,0.58)],'#9fc8e0');
+  poly([q(0.95,0.25,h+0.2),q(1.1,0.25,h+0.2),q(1.1,0.25,h+0.75),q(0.95,0.25,h+0.75)],'#8a5a40');}
+function landChunk(cx,cy,RSb){
+  const x0=cx*LCH,y0=cy*LCH,HM=5,bx0=iso(x0,y0+LCH)[0]-48,bx1=iso(x0+LCH,y0)[0]+48,by0=iso(x0,y0)[1]-HM*30-70,by1=iso(x0+LCH,y0+LCH)[1]+24;
+  const cv_=document.createElement('canvas');cv_.width=Math.ceil((bx1-bx0)*RSb);cv_.height=Math.ceil((by1-by0)*RSb);const c=cv_.getContext('2d');c.setTransform(RSb,0,0,RSb,-bx0*RSb,-by0*RSb);
+  const cols={grass:[96,150,64],sand:[226,206,140],water:[64,142,206],road:[196,164,112],rail:[132,122,108]};
+  const tiles=[];for(let y=y0;y<y0+LCH;y++)for(let x=x0;x<x0+LCH;x++)if(!(x>=0&&x<W&&y>=0&&y<H))tiles.push([x,y]);
+  tiles.sort((a,b)=>a[0]+a[1]-b[0]-b[1]);
+  for(const [x,y] of tiles){
+    const k=landKind(x,y),h00=landH(x,y),h10=landH(x+1,y),h11=landH(x+1,y+1),h01=landH(x,y+1);
+    const n=norm3([(h00+h01-h10-h11)/2,(h00+h10-h01-h11)/2,1]),lit=0.6+0.55*Math.max(0,dot3(n,LIGHT));
+    let col=cols[k];if(k==='grass'){const hh=(h00+h11)/2,v=lvn(x,y,3,77);col=mixC(mixC(col,[150,180,84],Math.min(1,hh/5)),[74,124,58],v*0.55);}
+    const pts=[iso(x,y,h00),iso(x+1,y,h10),iso(x+1,y+1,h11),iso(x,y+1,h01)];
+    c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();c.fillStyle=css(col,k==='water'?1:lit);c.fill();c.strokeStyle=c.fillStyle;c.lineWidth=0.8;c.stroke();
+    if(k==='water'&&hash(x*3.3,y*1.9)<0.35){const p=iso(x+0.5,y+0.5,0);c.strokeStyle='rgba(235,245,255,.55)';c.lineWidth=1.4;c.beginPath();c.moveTo(p[0]-9,p[1]);c.quadraticCurveTo(p[0]-4,p[1]-3,p[0],p[1]);c.quadraticCurveTo(p[0]+4,p[1]+3,p[0]+9,p[1]);c.stroke();}
+    if(k==='grass'&&hash(x*5.1,y*3.7)<0.3){const p=iso(x+hash(x,y*2),y+hash(x*2,y),(h00+h11)/2);c.fillStyle=['#f2e06a','#ffffff','#e87a9a'][Math.floor(hash(x*7,y)*3)];for(let i=0;i<3;i++)c.fillRect(p[0]+i*3-3,p[1]+(i%2)*2,1.6,1.6);}
+    if(k==='rail'){for(let s_=0;s_<3;s_++){const sx=x+0.17+s_*0.33,a=iso(sx-0.07,y+0.12),b=iso(sx+0.07,y+0.12),c2=iso(sx+0.07,y+0.88),d=iso(sx-0.07,y+0.88);c.fillStyle='#4a3a2a';c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.lineTo(c2[0],c2[1]);c.lineTo(d[0],d[1]);c.closePath();c.fill();}
+      if(y===48||y===49)for(const ry of [0.3,0.7]){const a=iso(x,y+ry),b=iso(x+1,y+ry);c.strokeStyle='#6e7276';c.lineWidth=2.2;c.beginPath();c.moveTo(a[0],a[1]-1);c.lineTo(b[0],b[1]-1);c.stroke();}}
+    // what stands on this tile
+    if(k!=='grass')continue;const d=outDist(x+0.5,y+0.5),front=x>=W||y>=H;if(d<(front?4:1.5))continue;
+    const hz=(h00+h10+h11+h01)/4,wood=lvn(x,y,6,21),r_=hash(x*1.9+3,y*2.7+1);
+    if(r_<(wood>0.55?0.55:0.07)){const big=lvn(x,y,5,33)>0.45;landTree(c,x+0.3+hash(x,y*3)*0.4,y+0.3+hash(x*3,y)*0.4,hz,0.85+hash(x*2,y*5)*0.35,big);}
+    else if(d>8&&hash(Math.floor(x/LCH)*7.7,Math.floor(y/LCH)*3.1)<0.33&&x%LCH===3&&y%LCH===3&&Math.abs(h00-h11)<0.6)landCottage(c,x,y,hz);
+  }
+  return {c:cv_,x:bx0,y:by0,w:bx1-bx0,h:by1-by0};
+}
+function drawLandscape(){
+  const RSb=Math.min(1.5,SPR_RS||1);if(RSb!==LAND_RS){LAND.clear();LAND_RS=RSb;}
+  const hw=VW/2/SC+60,hh=VH/2/SC+60,sx0=G.camX-hw,sx1=G.camX+hw,sy0=G.camY-hh,sy1=G.camY+hh+180;
+  const tx=(sx,sy)=>[(sx/32+sy/16)/2,(sy/16-sx/32)/2],cs=[tx(sx0,sy0),tx(sx1,sy0),tx(sx0,sy1),tx(sx1,sy1)];
+  const cx0=Math.floor(Math.min(...cs.map(p=>p[0]))/LCH)-1,cx1=Math.floor(Math.max(...cs.map(p=>p[0]))/LCH)+1,cy0=Math.floor(Math.min(...cs.map(p=>p[1]))/LCH)-1,cy1=Math.floor(Math.max(...cs.map(p=>p[1]))/LCH)+1;
+  const want=[];for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){if(cx*LCH>=0&&(cx+1)*LCH<=W&&cy*LCH>=0&&(cy+1)*LCH<=H)continue;
+    const a=iso(cx*LCH,cy*LCH+LCH),b=iso(cx*LCH+LCH,cy*LCH),t=iso(cx*LCH,cy*LCH),u=iso(cx*LCH+LCH,cy*LCH+LCH);
+    if(b[0]+48<sx0||a[0]-48>sx1||u[1]+24<sy0||t[1]-210>sy1)continue;want.push([cx,cy]);}
+  want.sort((p,q)=>p[0]+p[1]-q[0]-q[1]);
+  let budget=2;
+  for(const [cx,cy] of want){const key=cx+','+cy;let ch=LAND.get(key);
+    if(!ch){if(budget-->0){ch=landChunk(cx,cy,RSb);LAND.set(key,ch);if(LAND.size>64){LAND.delete(LAND.keys().next().value);}}else continue;}
+    else{LAND.delete(key);LAND.set(key,ch);}
+    ctx.drawImage(ch.c,ch.x,ch.y,ch.w,ch.h);}
+}
 /* ---------- ground: textured tiles, world-scale variation, cast shadows, diorama base; cached ---------- */
 function floorTexAt(x,y){
   const c=grid[y][x],r=roomAt(x,y),v=Math.floor(hash(x*1.7,y*2.3)*3);
@@ -2822,10 +2912,8 @@ function buildFloor(){
   if(!buildAt)buildIndex();
   FS=Math.min(1.6,Math.sqrt(8.5e6/(FW*FH)));
   floorCv.width=Math.round(FW*FS);floorCv.height=Math.round(FH*FS);
-  fctx.imageSmoothingEnabled=false;fctx.setTransform(FS,0,0,FS,-FX0*FS,-FY0*FS);fctx.fillStyle='#05070b';fctx.fillRect(FX0,FY0,FW,FH);
+  fctx.imageSmoothingEnabled=false;fctx.setTransform(1,0,0,1,0,0);fctx.clearRect(0,0,floorCv.width,floorCv.height);fctx.setTransform(FS,0,0,FS,-FX0*FS,-FY0*FS);
   const D=0.55,sl=(pts,col)=>{fctx.beginPath();pts.forEach((p,i)=>i?fctx.lineTo(p[0],p[1]):fctx.moveTo(p[0],p[1]));fctx.closePath();fctx.fillStyle=col;fctx.fill();};
-  sl([iso(0,H,0),iso(W,H,0),iso(W,H,-D),iso(0,H,-D)],'#4a3a2a');sl([iso(W,0,0),iso(W,H,0),iso(W,H,-D),iso(W,0,-D)],'#3a2c20');
-  for(let i=0;i<120;i++){const t=hash(i,3),a=iso(t*W,H,-0.1-hash(i,7)*0.4);fctx.fillStyle='rgba(20,14,10,.35)';fctx.fillRect(a[0],a[1],3+hash(i,9)*5,2);const b2=iso(W,t*H,-0.1-hash(i,8)*0.4);fctx.fillRect(b2[0],b2[1],3,2);}
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){const [t,v]=floorTexAt(x,y);face(fctx,iso(x,y),iso(x+1,y),iso(x,y+1),t,v,TR,TR,1);}
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){const c=grid[y][x];if(!'HQN'.includes(c))continue;
     for(let k=0;k<3;k++){const sx=x+0.17+k*0.33,a=iso(sx-0.07,y+0.12),b=iso(sx+0.07,y+0.12),c2=iso(sx+0.07,y+0.88),d=iso(sx-0.07,y+0.88);
@@ -2950,10 +3038,11 @@ function render(){
   const ty=cam[1]-25+(portraitTouch?VH*0.12/SC:0);
   G.camX+=(cam[0]-G.camX)*0.12;G.camY+=(ty-G.camY)*0.12;
   if(G.shake>0){G.shakeX=(Math.random()-.5)*G.shake*14;G.shakeY=(Math.random()-.5)*G.shake*14;}else{G.shakeX=G.shakeY=0;}
-  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#05070b';ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#5d9a3c';ctx.fillRect(0,0,cv.width,cv.height);
   ctx.imageSmoothingEnabled=false;
   {const rs=Math.min(2.5,Math.round(DPR*SC*4)/4);if(rs!==SPR_RS&&(!SPR_RS||performance.now()-zoomT>350)){SPR.clear();SPR_RS=rs;FIGC.clear();FIG_PX=0;}}
   worldXf(ctx);
+  drawLandscape();
   {// only the part of the ground that's on screen
     const hw=VW/2/SC+40,hh=VH/2/SC+40,wx0=Math.max(FX0,G.camX-hw),wy0=Math.max(FY0,G.camY-hh),wx1=Math.min(FX0+FW,G.camX+hw),wy1=Math.min(FY0+FH,G.camY+hh);
     if(wx1>wx0&&wy1>wy0)ctx.drawImage(floorCv,(wx0-FX0)*FS,(wy0-FY0)*FS,(wx1-wx0)*FS,(wy1-wy0)*FS,wx0,wy0,wx1-wx0,wy1-wy0);}

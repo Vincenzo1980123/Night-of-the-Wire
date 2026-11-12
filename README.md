@@ -77,6 +77,7 @@ There's no fixed order and no required route.
   - Every guard carries one. Take a rifle from a guard you've knocked out at night (5 rounds), or from the guardhouse rack (8 rounds; there are two).
   - With a rifle, Act on a guard in clear sight shoots him: the siren goes off, guards nearby come, and it costs +10 Weight.
   - A guard who sees you armed shoots at you.
+  - You can also shoot a guard dog (+6 Weight). It's just as loud, and its handler comes looking for you. The handlers have new dogs the next day.
 - **The burn pit:** come up behind a guard at its edge and you can push him in. Only the fire flaring up is shown.
 - **How it ends:** caught a third time, or still there after the fifth night, you're put in the line to the East Block, and that ending can't be avoided. Friends still in the cells at dawn are taken for good.
 
@@ -107,7 +108,8 @@ An isometric, hand-painted miniature world with cartoon people in it. All design
   - Aren and the two nearest people get full detail, and still figures are cached.
 - **Environment:**
   - Dithered 64-texel textures: prefab metal barracks, concrete blocks, corrugated roofs, steel fence posts and towers.
-  - Construction details, cutaway roofs, cast shadows, and a diorama base.
+  - Construction details, cutaway roofs and cast shadows.
+- **Around the camp:** instead of black, an endless painted countryside in the spirit of 1990s isometric adventures: rolling green hills, lakes with sandy shores, woods of round trees and pines, wild flowers, a winding dirt road to the north, the railway running on, and red-roofed cottages with blue doors. It darkens with the night like everything else.
 
 ## Sound
 - **Loudspeakers:** by day, after a modern two-tone chime, the facility PA plays classical recordings: Verdi's **Anvil Chorus** (*Il trovatore*) through the morning's work, then after the midday announcement Mussorgsky's **Bydło** (*Pictures at an Exhibition*, the heavy ox-cart), then quiet until the end-of-work announcement. Opened as a local file, without the recordings, an original synthesised anthem stands in.
