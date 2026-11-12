@@ -2397,14 +2397,27 @@ function buildHead(L,lo){
   CURF=FACE0;return parts;
 }
 function buildFigure(L,lo,guard){const F_=buildFigure0(L,lo,guard);const k=L.bulk||1;
-  if(L.statue){const coat=mixC(rgbOf(L.shirt),[0,0,0],0.08),n=lo?8:16;
-    // a long uniform greatcoat to the knee, a belt, and epaulettes on the shoulders
-    F_.pelvis.push(loft([{u:0.14,rf:0.125,rs:0.165},{u:-0.08,rf:0.15,rs:0.19},{u:-0.3,rf:0.17,rs:0.21},{u:-0.44,rf:0.18,rs:0.22}],n,coat,{e:2.4,bias:0.012}));
-    F_.pelvis.push(loft([{u:0.1,rf:0.132,rs:0.172},{u:0.15,rf:0.132,rs:0.172}],n,mixC(coat,[0,0,0],0.25),{e:2.4,bias:0.02}));
-    for(const sd of [1,-1])F_.torso.push(ellip(lo?5:8,lo?3:4,0.075,0.07,0.028,[0,sd*0.17,0.52],mixC(coat,[255,230,170],0.12)));}if(k!==1)for(const part of ['pelvis','torso'])for(const m of F_[part])m.V=m.V.map(v=>[v[0]*k,v[1]*k,v[2]]);return F_;}
+  if(L.statue){const tun=mixC(rgbOf(L.shirt),[0,0,0],0.06),dark=mixC(tun,[0,0,0],0.3),gilt=mixC(tun,[255,226,160],0.22),n=lo?8:16;
+    // a fitted military tunic: short skirt over the hips, belt and buckle, a cross-strap, buttons, medals, a high collar, epaulettes
+    F_.pelvis.push(loft([{u:0.15,rf:0.116,rs:0.152},{u:0.04,rf:0.12,rs:0.157},{u:-0.035,rf:0.123,rs:0.16}],n,tun,{e:2.4,bias:0.012}));
+    F_.pelvis.push(loft([{u:0.1,rf:0.124,rs:0.162},{u:0.155,rf:0.122,rs:0.16}],n,dark,{e:2.4,bias:0.02}),boxM(0.118,0.132,-0.022,0.022,0.105,0.15,gilt));
+    const front=(u,y)=>{const rf=u<0.36?0.113+(u-0.22)/0.14*0.007:0.12,rs=u<0.36?0.146+(u-0.22)/0.14*0.019:0.165+(u-0.36)/0.1*0.015;return rf*Math.pow(Math.max(0,1-Math.pow(Math.abs(y)/rs,2.6)),1/2.6)+0.004;};
+    if(!lo){// the cross-strap: one smooth band lying on the chest from the right hip to the left shoulder
+      {const V=[],T=[],N=16,du=0.33,dy=0.2,l=Math.hypot(du,dy),hw=0.016,pu=-dy/l*hw,py=du/l*hw;
+        for(let i=0;i<=N;i++){const t=i/N,u=0.17+t*du,y=-0.11+t*dy;for(const sg of [-1,1]){const uu=u+sg*pu,yy=y+sg*py;V.push([front(uu,yy)+0.003,yy,uu]);}}
+        for(let i=0;i<N;i++){const a=2*i;T.push([a,a+1,a+3,dark],[a,a+3,a+2,dark]);}
+        F_.torso.push({V,N:V.map(()=>[1,0,0]),T,flat:true,bias:0.03,ramp:16});}
+      for(const u of [0.2,0.28,0.36,0.44])F_.torso.push(ellip(5,3,0.012,0.012,0.012,[front(u,0)+0.004,0,u],gilt));
+      for(const [y,c] of [[0.05,[150,40,36]],[0.08,gilt],[0.11,[40,70,110]]]){F_.torso.push(boxM(front(0.43,y)-0.002,front(0.43,y)+0.008,y-0.012,y+0.012,0.42,0.445,mixC(tun,c,0.35)));
+        F_.torso.push(ellip(5,3,0.009,0.012,0.012,[front(0.4,y)+0.006,y,0.4],gilt));}}
+    F_.torso.push(loft([{u:0.53,rf:0.08,rs:0.096},{u:0.585,rf:0.07,rs:0.08}],n,dark,{e:2.2,bias:0.03}));
+    for(const sd of [1,-1])F_.torso.push(boxM(-0.05,0.06,sd>0?0.09:-0.175,sd>0?0.175:-0.09,0.535,0.556,gilt));
+    // tall boots to just under the knee
+    for(const k_ of ['L','R'])F_['sn'+k_].push(loft([{u:-0.03,rf:0.066,rs:0.064},{u:-0.15,rf:0.06,rs:0.06},{u:-0.27,rf:0.054,rs:0.054}],lo?6:10,dark,{capT:true,bias:0.01}));}
+if(k!==1)for(const part of ['pelvis','torso'])for(const m of F_[part])m.V=m.V.map(v=>[v[0]*k,v[1]*k,v[2]]);return F_;}
 function buildFigure0(L,lo,guard){
   const skin=rgbOf(L.skin),shirt=rgbOf(L.shirt),stripe=L.stripe?rgbOf(L.stripe):null,pants=rgbOf(L.pants);
-  const boot=guard?[38,34,30]:[72,58,44],SR=lo?16:30;
+  const boot=guard?[38,34,30]:L.statue?mixC(rgbOf(L.pants),[0,0,0],0.3):[72,58,44],SR=lo?16:30;
   const M={pelvis:[],torso:[],head:buildHead(L,lo),uaL:[],laL:[],uaR:[],laR:[],thL:[],snL:[],thR:[],snR:[]};
   if(lo){ // distant figures: same silhouette and colours, a fraction of the polygons, flat-filled
     const st=i=>stripe&&i%2?stripe:shirt;
