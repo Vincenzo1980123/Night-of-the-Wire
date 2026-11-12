@@ -316,6 +316,10 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 const TW=64, TH=32, HU=30;
 const DAY_LEN=486, NIGHT_LEN=210, LAST_DAY=5;
 const hash=(x,y)=>{const s=Math.sin(x*127.1+y*311.7)*43758.5453;return s-Math.floor(s);};
+// the road from the north: it winds through the hills and bends into the middle of the main gate (x=16)
+const roadX0=y=>15.5+3.2*Math.sin(y*0.11)+1.4*Math.sin(y*0.27);
+const roadX=y=>{if(y<-3)return roadX0(y);const k=Math.min(1,(y+3)/6.5),e=k*k*(3-2*k);return roadX0(-3)+(16-roadX0(-3))*e;};
+const onRoad=(x,y)=>y<4&&Math.abs(x+0.5-roadX(y+0.5))<1.05;
 const dots=n=>'.'.repeat(n);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
@@ -394,7 +398,7 @@ const SOUTH=[
 const W=44;
 function buildRows(){
   const rows=['E'.repeat(W)];
-  for(let y=1;y<=3;y++){let s='';for(let x=0;x<W;x++)s+=(y<3&&x>0&&x<W-1&&hash(x,y)<0.14)?'r':',';rows.push(s);}
+  for(let y=1;y<=3;y++){let s='';for(let x=0;x<W;x++)s+=(y<3&&x>0&&x<W-1&&hash(x,y)<0.14&&Math.abs(x+0.5-roadX(y+0.5))>1.6)?'r':',';rows.push(s);}
   return rows.concat(MAIN.map((r,i)=>r+EASTR[i]),SOUTH);
 }
 const H=buildRows().length;
@@ -2827,10 +2831,9 @@ const LCH=8,LAND=new Map();let LAND_RS=0;
 const lvn=(x,y,s,o=0)=>{x/=s;y/=s;const xi=Math.floor(x),yi=Math.floor(y),fx=x-xi,fy=y-yi,u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy),h_=(a,b)=>hash(a*1.37+o,b*2.11-o);
   return h_(xi,yi)*(1-u)*(1-v)+h_(xi+1,yi)*u*(1-v)+h_(xi,yi+1)*(1-u)*v+h_(xi+1,yi+1)*u*v;};
 const outDist=(x,y)=>Math.max(-x,x-W,-y,y-H,0);
-const roadX=y=>15.5+3.2*Math.sin(y*0.11)+1.4*Math.sin(y*0.27);
 function landKind(x,y){const d=outDist(x+0.5,y+0.5);
   if(y>=47&&y<=49&&(x<0||x>=W))return 'rail';
-  if(y<0&&Math.abs(x+0.5-roadX(y+0.5))<0.9)return 'road';
+  if(onRoad(x,y))return 'road';
   const ln=lvn(x,y,7,40);if(d>5&&ln<0.27)return 'water';if(d>5&&ln<0.31)return 'sand';
   return 'grass';}
 function landH(x,y){const d=outDist(x,y),ramp=Math.max(0,Math.min(1,(d-2)/7));if(ramp<=0)return 0;
@@ -2904,6 +2907,7 @@ function drawLandscape(){
 function floorTexAt(x,y){
   const c=grid[y][x],r=roomAt(x,y),v=Math.floor(hash(x*1.7,y*2.3)*3);
   if(c==='O')return ['ash',v];if(c==='d'||c==='o'||c==='p')return ['doorFloor',0];if(c==='Z')return ['wetFloor',v];if(r&&r.f==='w')return ['woodFloor',v];if(r&&r.f==='cell')return ['cellFloor',v];if(r)return ['concFloor',v];
+  if(onRoad(x,y))return ['dirt',v];
   if(c===','||c==='r'||c==='E'||y<4)return ['grass',v];if(x>=32&&y>=5&&y<=43)return [x===37&&y>=15?'path':'ash',v];
   if(c==='h')return ['concFloor',v];if(c==='H'||c==='Q'||c==='N')return ['gravel',v];if(y>=45)return ['grass',v];if(y>=5&&y<=7)return ['gravel',v];
   if(x<31&&y>=9&&((y===15||y===19)||((x===10||x===11||x===20||x===21)&&y>=15&&y<=19)))return ['path',v];
