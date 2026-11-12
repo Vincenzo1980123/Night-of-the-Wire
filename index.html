@@ -2894,7 +2894,8 @@ function landChunk(cx,cy,RSb){
   }
   // the road, as one smooth strip over the ground, before anything that stands on it
   if(y0<=0){const ya=Math.max(y0-1,-400),yb=Math.min(y0+LCH+1,0.4);let near=false;for(let y=ya;y<=yb;y+=1){const rx=roadX(y);if(rx>x0-3&&rx<x0+LCH+3)near=true;}
-    if(near&&yb>ya)roadRibbon(c,ya,yb,null);}
+    // only on this block's own ground, so it never paints over trees that a neighbouring block has already drawn
+    if(near&&yb>ya){c.save();c.beginPath();for(const [x,y] of tiles){const q=[iso(x,y),iso(x+1,y),iso(x+1,y+1),iso(x,y+1)];c.moveTo(q[0][0],q[0][1]);for(let i=1;i<4;i++)c.lineTo(q[i][0],q[i][1]);c.closePath();}c.clip();roadRibbon(c,ya,yb,null);c.restore();}}
   for(const [x,y] of tiles){
     const k=landKind(x,y),h00=landH(x,y),h10=landH(x+1,y),h11=landH(x+1,y+1),h01=landH(x,y+1);
     // what stands on this tile
