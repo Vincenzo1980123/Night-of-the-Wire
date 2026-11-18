@@ -4135,7 +4135,7 @@ async function load(name,url,opts){if(!gl&&!compile())return;try{const A=await b
     R_.assets[name]=A;R_.ok=true;if(typeof FIGC!=='undefined'){FIGC.clear();FIG_PX=0;}}catch(err){console.warn('asset '+name+' not loaded:',err);}}
 return {debugPose:ph=>{const A=R_.assets.aren,W=worlds(A,sample(A,A.walk,A.c0+ph*A.cycle)),f=b=>[W[b][13],W[b][14]],L=f(A.bn('footL')),Rr=f(A.bn('footR')),H=f(A.bn('hips'));return [L[0],L[1],Rr[0],Rr[1],H[0],H[1]];},load,render,has:L=>!!(L._asset&&R_.assets[L._asset]),R_,walkSpeed:name=>{const A=R_.assets[name];return A?A.walkSpeed*A.cycle*(A.opts.height/A.h):1;},stride:name=>{const A=R_.assets[name];return A?A.walkSpeed*A.cycle*(A.opts.height/A.h):1;}};
 })();
-if(location.protocol!=='file:')RIG.load('aren','models/aren.glb',{height:1.45});   // opened as a local file, the procedural figure is used
+if(location.protocol!=='file:')RIG.load('aren',location.hostname.endsWith('github.io')||location.hostname==='localhost'?'models/aren.glb':'models/aren.glb.webm',{height:1.45});   // opened as a local file, the procedural figure is used
 </script>
 <script>
 /* ================= intro: how Aren came to Greywater, told in eight drawn panels ================= */
