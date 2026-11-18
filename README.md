@@ -100,7 +100,7 @@ Pause menu: sound, *Chatter* (nearby only / off / all) and *Loudspeakers* (norma
 
 ## Visual style
 An isometric, hand-painted miniature world with cartoon people in it. All designs are original.
-- **Characters:** big-headed cartoon figures in the style of modern mobile management games: chunky bodies, short limbs, flat toon shading (a lit side and a shadow side), an ink outline, and simple faces with dark dot eyes and bold brows. They are still fully posed 3D figures, so they walk, sneak, work, bow and aim from every angle. The Director's bronze statue keeps a sculpted face.
+- **Characters:** a painterly, hand-made look worked out from a Higgsfield concept sheet (`textures/concept-*.jpg`): normal-sized heads with long, characterful faces and painted eyes, oversized hands and heavy boots, broad bony shoulders and a tired, forward-leaning posture; baggy jumpsuits with rolled-up sleeves. Faceted shading in three flat bands with cool violet shadows and a warm rim light, rough oil brush strokes laid over every figure (a Higgsfield brush-stroke map), and a soft dark-violet outline. They are still fully posed 3D figures, so they walk, sneak, work, bow and aim from every angle. The Director's bronze statue keeps its own proportions and patina.
   - Aren has a freshly shaven head (a faint dark shadow with a hairline) and a goatee.
   - Bram is heavier, darker and bearded.
   - Tomas is grey with glasses.
@@ -110,7 +110,6 @@ An isometric, hand-painted miniature world with cartoon people in it. All design
   - Dithered 64-texel textures: prefab metal barracks, concrete blocks, corrugated roofs, steel fence posts and towers.
   - Construction details, cutaway roofs and cast shadows.
 - **Painted textures:** the grass, dirt and gravel, the metal wall panels, concrete block walls, corrugated iron and terracotta roofs, and the wooden, concrete and tiled floors were generated with Higgsfield (image model) as seamless tiles, then scaled so each image spans one or two tiles and colour-matched to the game's palette. They are embedded in `index.html` (copies in `textures/`); until they load, hand-coded fallback textures are shown.
-- **Fabric detail:** the characters' clothes carry a fine fabric grain made with Higgsfield: cotton twill on the jumpsuits and everyday clothes, ripstop on the guards' uniforms, and a weathered cast-metal patina on the Director's statue. Faces and hands get a modelling-clay surface (soft thumb smudges and tool marks), like stop-motion puppets, with a soft waxy shine on the head and hands where the light catches them. The grain is blended over the cartoon shading, so light and shadow are unchanged (maps in `textures/fabric/`).
 - **Around the camp:** instead of black, an endless countryside of rolling hills, quiet lakes, pine woods, a winding dirt road to the north, the railway running on, and a few red-roofed cottages, painted with the same grass, ground and pine trees as the land just outside the fence. It darkens with the night like everything else.
 
 ## Sound
