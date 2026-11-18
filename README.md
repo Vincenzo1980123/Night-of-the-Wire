@@ -100,7 +100,7 @@ Pause menu: sound, *Chatter* (nearby only / off / all) and *Loudspeakers* (norma
 
 ## Visual style
 An isometric, hand-painted miniature world with cartoon people in it. All designs are original.
-- **Characters:** a painterly, hand-made look worked out from a Higgsfield concept sheet (`textures/concept-*.jpg`): normal-sized heads with long, characterful faces and painted eyes, oversized hands and heavy boots, broad bony shoulders and a tired, forward-leaning posture; baggy jumpsuits with rolled-up sleeves. Faceted shading in three flat bands with cool violet shadows and a warm rim light, rough oil brush strokes laid over every figure (a Higgsfield brush-stroke map), and a soft dark-violet outline. They are still fully posed 3D figures, so they walk, sneak, work, bow and aim from every angle. The Director's bronze statue keeps its own proportions and patina.
+- **Characters:** a grounded, painterly look built from a Higgsfield concept lineup (`textures/concept-lineup.jpg`): believable adult proportions, rounded heads with long, tired, characterful faces and painted eyes, slightly enlarged hands, heavy boots, baggy jumpsuits with rolled-up sleeves and elastic waists, and a slight forward lean. Smooth painted shading with cool violet shadows and a warm rim light, rough oil brush strokes laid over every figure (a Higgsfield brush-stroke map), and a soft dark-violet outline. Bram is heavy-set, Tomas has untidy grey hair and glasses, the guards wear gloves, knee pads and vests. They are still fully posed 3D figures, so they walk, sneak, work, bow and aim from every angle.
   - Aren has a freshly shaven head (a faint dark shadow with a hairline) and a goatee.
   - Bram is heavier, darker and bearded.
   - Tomas is grey with glasses.
