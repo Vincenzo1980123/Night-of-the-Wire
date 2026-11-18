@@ -515,8 +515,8 @@ const STATUE_NEAR=()=>Math.hypot(P.x-STATUE.x,P.y-STATUE.y);
 const LOOKS={
   player:{_asset:'aren',skin:'#e2b590',shirt:'#d8641a',stripe:null,pants:'#c4581a',hair:'#6b4c36',hairStyle:'bald',stubble:true,goatee:true,iris:'#4a3626',browC:'#94725a',scale:1,face:{nose:.8,eyes:1.02,lids:.24,brow:-.004,browTilt:.012,browW:.021,jaw:.24,lash:.5}},
   mira:{skin:'#e8bf9b',shirt:'#d8641a',stripe:null,pants:'#c4581a',hair:'#191210',hairStyle:'bun',scarf:'#2c3e66',iris:'#5a3a24',scale:.94,face:{w:.95,jaw:.38,nose:.8,eyes:1.06,lids:.17,browW:.015,lip:'#b8665c'}},
-  tomas:{skin:'#d9ab86',shirt:'#d8641a',stripe:null,pants:'#c4581a',hair:'#cfcbc1',hairStyle:'grey',glasses:true,browC:'#b8b4aa',iris:'#4e5a52',scale:.97,face:{nose:1.05,eyes:.94,lids:.32,age:1,brow:-.012}},
-  bram:{skin:'#a8754f',shirt:'#d8641a',stripe:null,pants:'#c4581a',hair:'#33241a',hairStyle:'bald',beard:true,belly:true,bulk:1.2,iris:'#2e2018',scale:1.12,face:{w:1.1,jaw:.18,nose:1.12,eyes:.92,lids:.26,browW:.028,brow:-.008}},
+  tomas:{_asset:'aren',_var:{suit:'#cf6a2a',skin:'#d9ab86',hair:2,hairC:'#cfcbc1',beard:0.35,beardC:'#b8b4aa',shave:true,glasses:true,width:0.94,head:1.0,seed:0.3},skin:'#d9ab86',shirt:'#d8641a',stripe:null,pants:'#c4581a',hair:'#cfcbc1',hairStyle:'grey',glasses:true,browC:'#b8b4aa',iris:'#4e5a52',scale:.97,face:{nose:1.05,eyes:.94,lids:.32,age:1,brow:-.012}},
+  bram:{_asset:'aren',_var:{suit:'#c85c1e',skin:'#a8754f',hair:0,beard:1,beardC:'#2a1e16',shave:true,width:1.2,head:1.04,seed:0.7},skin:'#a8754f',shirt:'#d8641a',stripe:null,pants:'#c4581a',hair:'#33241a',hairStyle:'bald',beard:true,belly:true,bulk:1.2,iris:'#2e2018',scale:1.12,face:{w:1.1,jaw:.18,nose:1.12,eyes:.92,lids:.26,browW:.028,brow:-.008}},
   guard:{skin:'#d7a77f',shirt:'#262a31',stripe:null,pants:'#1e2127',hair:'#2a2a2a',hairStyle:'helmet',iris:'#3a4650',scale:1.06,coat:false,face:{w:1.04,jaw:.14,eyes:.92,lids:.27,browTilt:.02,brow:-.01,browW:.026}}
 };
 function npcLook(seed,kind,scale){
@@ -536,8 +536,14 @@ function npcLook(seed,kind,scale){
   // new arrivals still wear their own everyday clothes
   if(kind==='queue'){L.shirt=['#4a5a78','#7a3a3a','#5a6a4a','#8a8a8e','#c8b48a','#2e3440'][Math.floor(r(5)*6)];L.pants=['#3a4a6a','#2a2a2e','#5a5048'][Math.floor(r(16)*3)];L.stripe=null;}
   if(kind==='trustee'){L.shirt='#6a7078';L.stripe=null;L.pants='#4a4f56';L.hairStyle='short';L.scale=1.02;}
-  return L;
+  return rigVariant(L,seed,kind==='trustee'?{width:1.08}:{});
 }
+// most men in the camp are drawn on Aren's sculpted body, each repainted and reshaped: suit, skin, hair, beard, build, head size
+function rigVariant(L,seed,o={}){if(L.hairStyle==='bun'||(L.scale||1)<0.8||L.statue)return L;const r=i=>hash(seed*3.7+i,seed*1.3+i*2.1);
+  const orange=['#d8641a','#cf6a2a','#c85c1e','#d9773a','#c96a34'];
+  L._asset='aren';L._var=Object.assign({suit:L.shirt==='#d8641a'||L.shirt==='#d26018'?orange[Math.floor(r(1)*orange.length)]:L.shirt,skin:L.skin,
+    hair:L.hairStyle==='short'||L.hairStyle==='tuft'?1:L.hairStyle==='grey'?2:0,hairC:L.hairStyle==='grey'?'#b8b4aa':L.hair,
+    beard:L.beard?1:r(2)<0.45?0.35:0,beardC:L.beard?L.hair:'#3a2c22',shave:true,width:0.93+r(3)*0.15,head:0.95+r(4)*0.09,seed:r(5)},o);return L;}
 function guardLook(seed){const r=i=>hash(seed*5.1+i,seed*2.7+i*1.3),F=LOOKS.guard.face;
   return Object.assign({},LOOKS.guard,{skin:['#d7a77f','#e0b48e','#c99a72','#dcae88'][Math.floor(r(1)*4)],iris:['#3a4650','#3a2a1e','#4a5a66'][Math.floor(r(2)*3)],
     face:Object.assign({},F,{w:F.w+(r(3)-0.5)*0.1,jaw:F.jaw+(r(4)-0.5)*0.12,nose:0.92+r(5)*0.24,lids:0.22+r(6)*0.1,browTilt:0.01+r(7)*0.02,age:r(8)<0.3?0.5:0})});}
@@ -2666,19 +2672,19 @@ function drawPerson(e,alpha){
   let pk=(useR?'R'+(e.moving?rph:'i'):useS?'S':'')+e.look._id+'|'+lo+(e.isGuard?'g':'')+'|'+RS+'|'+(armed?1:0)+(aiming?1:0)+'|'+dq;for(const kk in po)pk+=','+Math.round(po[kk]*14);
   let sp=FIGC.get(pk);
   if(sp){FIGC.delete(pk);FIGC.set(pk,sp);}
-  else if(useS&&e._lastS&&e!==P&&!SCULPT.canRender())sp=e._lastS;   // over this frame's budget: keep the last frame for now
+  else if(e._lastS&&e!==P&&((useS&&!SCULPT.canRender())||(useR&&!RIG.canRender())))sp=e._lastS;   // over this frame's budget: keep the last frame for now
   else{
     const sc=e.look.scale||1,bs=sc*BK,zp=(e.z||0)*30,bw=(po.lie?112:armed?96:76)*bs,top=(po.lie?52:(e.isStatue?118:94))*sc+zp,bot=po.lie?30:16,bx=-bw/2,by=-top,pad=Math.ceil(2.5*RS),w=Math.ceil(bw*RS)+2*pad,h=Math.ceil((top+bot)*RS)+2*pad;
     if(!FIG_SCR||FIG_SCR.width<w||FIG_SCR.height<h){FIG_SCR=document.createElement('canvas');FIG_SCR.width=Math.max(w,FIG_SCR?FIG_SCR.width:0);FIG_SCR.height=Math.max(h,FIG_SCR?FIG_SCR.height:0);}
     const g=FIG_SCR.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,w,h);g.setTransform(RS,0,0,RS,-bx*RS+pad,-by*RS+pad);
-    if(useR){g.setTransform(1,0,0,1,0,0);g.drawImage(RIG.render(e,po,dq,rph/32,e.moving&&!e.crouch||e.moving,w,h,bx,by,RS,pad),0,0,w,h,0,0,w,h);}
+    if(useR){RIG.count();g.setTransform(1,0,0,1,0,0);g.drawImage(RIG.render(e,po,dq,rph/32,e.moving&&!e.crouch||e.moving,w,h,bx,by,RS,pad),0,0,w,h,0,0,w,h);}
     else if(useS){g.setTransform(1,0,0,1,0,0);g.drawImage(SCULPT.render(e,po,dq,armed,aiming,w,h,bx,by,RS,pad),0,0,w,h,0,0,w,h);}
     else{const saved=ctx;ctx=g;try{body(undefined);}finally{ctx=saved;}}
     // the outline: the figure's silhouette, spread a little each way, filled with ink, under the figure
     const o=document.createElement('canvas');o.width=w;o.height=h;const go=o.getContext('2d');
     const r=Math.max(1.0,1.15*RS/Math.max(0.5,SC));for(const [dx,dy] of [[r,0],[-r,0],[0,r],[0,-r]])go.drawImage(FIG_SCR,0,0,w,h,dx,dy,w,h);
     go.globalCompositeOperation='source-in';go.fillStyle=INK;go.fillRect(0,0,w,h);go.globalCompositeOperation='source-over';go.drawImage(FIG_SCR,0,0,w,h,0,0,w,h);
-    sp={o,x:bx-pad/RS,y:by-pad/RS,w:w/RS,h:h/RS,px:w*h};FIGC.set(pk,sp);FIG_PX+=sp.px;if(useS)e._lastS=sp;
+    sp={o,x:bx-pad/RS,y:by-pad/RS,w:w/RS,h:h/RS,px:w*h};FIGC.set(pk,sp);FIG_PX+=sp.px;if(useS||useR)e._lastS=sp;
     while(FIG_PX>FIG_PX_MAX&&FIGC.size>1){const [k0,v0]=FIGC.entries().next().value;FIGC.delete(k0);FIG_PX-=v0.px;}
   }
   {const c0=iso(e.x,e.y),a0=ctx.globalAlpha;if(alpha!=null)ctx.globalAlpha=a0*alpha;ctx.drawImage(sp.o,c0[0]+sp.x,c0[1]+sp.y,sp.w,sp.h);ctx.globalAlpha=a0;}
@@ -3146,6 +3152,7 @@ function drawGuideBeacon(){
 function render(){
   if(floorDirty)buildFloor();
   if(typeof SCULPT!=='undefined'&&SCULPT.ok)SCULPT.pump(isTouch()?5:8);
+  if(typeof RIG!=='undefined'&&RIG.tick)RIG.tick();
   pInside=inEast(P.x,P.y)&&G.eastOpen&&!P.inLine;
   const cam=iso(P.x,P.y);
   const portraitTouch=isTouch()&&VH>VW;
@@ -4046,24 +4053,50 @@ const VS=`#version 300 es
 precision highp float;
 in vec3 aPos,aNor;in vec2 aUV;in vec4 aJ,aW;
 uniform vec4 uJ[192];uniform mat3 uM;uniform vec3 uT;uniform vec4 uProj;uniform vec2 uSize;uniform float uDepth;uniform vec3 uCamV;
-out vec3 vN,vW,vMP;out vec2 vUV;
+out vec3 vN,vW,vMP,vBP;out vec2 vUV;
 vec3 xf(int b,vec3 p){vec4 r0=uJ[b*3],r1=uJ[b*3+1],r2=uJ[b*3+2];return vec3(dot(r0.xyz,p)+r0.w,dot(r1.xyz,p)+r1.w,dot(r2.xyz,p)+r2.w);}
 vec3 xr(int b,vec3 n){return vec3(dot(uJ[b*3].xyz,n),dot(uJ[b*3+1].xyz,n),dot(uJ[b*3+2].xyz,n));}
 void main(){vec3 p=vec3(0),n=vec3(0);float ws=0.0;for(int i=0;i<4;i++){float w=aW[i];if(w<=0.0)continue;int b=int(aJ[i]+0.5);p+=w*xf(b,aPos);n+=w*xr(b,aNor);ws+=w;}
   if(ws<0.001){p=aPos;n=aNor;}
-  vMP=p;vec3 g=uM*p+uT;vN=normalize(uM*n);vW=g;vUV=aUV;
+  vMP=p;vBP=aPos;vec3 g=uM*p+uT;vN=normalize(uM*n);vW=g;vUV=aUV;
   float X=(g.x-g.y)*32.0,Y=(g.x+g.y)*16.0-g.z*30.0;vec2 px=(vec2(X,Y)-uProj.xy)*uProj.z+uProj.w;
   gl_Position=vec4(px.x/uSize.x*2.0-1.0,1.0-px.y/uSize.y*2.0,clamp(-dot(g,uCamV)*uDepth,-0.999,0.999),1.0);}`;
 const FS=`#version 300 es
 precision highp float;
-in vec3 vN,vW,vMP;in vec2 vUV;
+in vec3 vN,vW,vMP,vBP;in vec2 vUV;
 uniform sampler2D uBase,uNorm;uniform float uHasN,uNight;uniform vec3 uLight,uCamV,uRim;
+uniform vec4 uSuit,uHair,uBeard;uniform vec3 uSkinK,uSkinC;uniform float uShave,uGlasses,uSeed;
 out vec4 o;
+vec3 rgb2hsv(vec3 c){vec4 K=vec4(0.,-1./3.,2./3.,-1.);vec4 p=mix(vec4(c.bg,K.wz),vec4(c.gb,K.xy),step(c.b,c.g));vec4 q=mix(vec4(p.xyw,c.r),vec4(c.r,p.yzx),step(p.x,c.r));float d=q.x-min(q.w,q.y);return vec3(abs(q.z+(q.w-q.y)/(6.*d+1e-10)),d/(q.x+1e-10),q.x);}
 float h3(vec3 p){p=fract(p*vec3(.1031,.1030,.0973));p+=dot(p,p.yxz+33.33);return fract((p.x+p.y)*p.z);}
 float vn(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.0-2.0*f);return mix(mix(mix(h3(i),h3(i+vec3(1,0,0)),f.x),mix(h3(i+vec3(0,1,0)),h3(i+vec3(1,1,0)),f.x),f.y),mix(mix(h3(i+vec3(0,0,1)),h3(i+vec3(1,0,1)),f.x),mix(h3(i+vec3(0,1,1)),h3(i+vec3(1,1,1)),f.x),f.y),f.z);}
 mat3 cotangent(vec3 N,vec3 p,vec2 uv){vec3 dp1=dFdx(p),dp2=dFdy(p);vec2 du1=dFdx(uv),du2=dFdy(uv);vec3 dp2p=cross(dp2,N),dp1p=cross(N,dp1);vec3 T=dp2p*du1.x+dp1p*du2.x,B=dp2p*du1.y+dp1p*du2.y;float inv=inversesqrt(max(dot(T,T),dot(B,B))+1e-12);return mat3(T*inv,B*inv,N);}
 void main(){
-  vec4 tx=texture(uBase,vUV);vec3 base=pow(tx.rgb,vec3(1.0));
+  vec4 tx=texture(uBase,vUV);vec3 base=tx.rgb;vec3 B=vBP;
+  // ---- this person: repaint the base figure's suit, skin, hair and beard ----
+  vec3 hsv=rgb2hsv(base);
+  bool head=B.y>1.49;
+  float suit=smoothstep(0.42,0.6,hsv.y)*step(hsv.x,0.12)*step(0.25,hsv.z)*(head?0.0:1.0);
+  float skin=(1.0-suit)*smoothstep(0.08,0.2,hsv.y)*(1.0-smoothstep(0.5,0.62,hsv.y))*step(hsv.x,0.12)*step(0.3,hsv.z);
+  if(uSuit.w>0.5){float lum=dot(base,vec3(0.3,0.59,0.11));vec3 tl=uSuit.rgb*(lum/max(0.05,dot(uSuit.rgb,vec3(0.3,0.59,0.11))));base=mix(base,mix(tl,uSuit.rgb*0.5+tl*0.5,0.15),suit);}
+  base=mix(base,base*uSkinK,skin);
+  if(head){float lum=dot(tx.rgb,vec3(0.3,0.59,0.11));vec3 skinTone=uSkinC*(0.55+0.7*lum);
+    float front=smoothstep(0.03,0.07,B.z);
+    // painted chin beard of the base figure: shaved away for everyone else
+    float chin=(1.0-smoothstep(0.04,0.06,abs(B.x)))*smoothstep(1.585,1.565,B.y)*step(1.49,B.y)*smoothstep(0.02,0.05,B.z)*(1.0-smoothstep(0.36,0.5,lum));
+    base=mix(base,skinTone,chin*uShave);
+    // hair: short and dark all over the scalp, or a grey fringe round the sides and back with a bald crown
+    float crown=smoothstep(1.652,1.68,B.y+(vn(B*180.0)-0.5)*0.012)+smoothstep(0.03,-0.01,B.z)*smoothstep(1.57,1.6,B.y);crown=clamp(crown,0.0,1.0)*(1.0-smoothstep(1.54,1.53,B.y));
+    float fringe=smoothstep(1.56,1.585,B.y)*(1.0-smoothstep(1.665,1.69,B.y))*smoothstep(0.06,0.02,B.z);
+    float strands=0.75+0.5*vn(vec3(B.x*260.0,B.y*90.0,B.z*260.0));
+    if(uHair.w>0.5&&uHair.w<1.5)base=mix(base,uHair.rgb*strands,crown*0.92);
+    if(uHair.w>1.5){base=mix(base,uHair.rgb*strands,fringe*0.95);base=mix(base,skinTone*1.04,smoothstep(1.67,1.7,B.y)*0.5);}
+    // beard: over the jaw, chin and upper lip
+    float jaw=smoothstep(1.6,1.585,B.y)*step(1.48,B.y)*smoothstep(-0.03,0.02,B.z);float lipgap=(1.0-smoothstep(0.012,0.02,abs(B.y-1.572)))*(1.0-smoothstep(0.02,0.03,abs(B.x)))*front;
+    base=mix(base,uBeard.rgb*(0.7+0.5*vn(B*420.0)),jaw*(1.0-lipgap*0.7)*uBeard.w);
+    // round wire glasses
+    if(uGlasses>0.5){for(int s=-1;s<=1;s+=2){float d=length(vec2(B.x-float(s)*0.033,B.y-1.628));float ring=(1.0-smoothstep(0.0012,0.0022,abs(d-0.018)))*front;base=mix(base,vec3(0.16,0.15,0.13),ring);}
+      float bridge=(1.0-smoothstep(0.001,0.002,abs(B.y-1.636)))*(1.0-smoothstep(0.012,0.014,abs(B.x)))*front;base=mix(base,vec3(0.16,0.15,0.13),bridge);}}
   vec3 N=normalize(vN);
   if(uHasN>0.5){vec3 tn=texture(uNorm,vUV).xyz*2.0-1.0;tn.xy*=0.85;N=normalize(cotangent(N,vW,vUV)*tn);}
   // painterly light over the painted texture: a soft form shadow with a brushed edge, cool violet shadows, a warm rim
@@ -4079,15 +4112,18 @@ void main(){
   if(tx.a<0.4)discard;
   o=vec4(clamp(col,0.0,1.0),1.0);}`;
 function compile(){CV=document.createElement('canvas');CV.width=256;CV.height=256;gl=CV.getContext('webgl2',{antialias:true,premultipliedAlpha:true,preserveDrawingBuffer:true,alpha:true});if(!gl)return false;
+  {const d=gl.getExtension('WEBGL_debug_renderer_info'),r=d?String(gl.getParameter(d.UNMASKED_RENDERER_WEBGL)):'';R_.soft=/swiftshader|llvmpipe|software/i.test(r);}
+  if(R_.soft){CV=document.createElement('canvas');CV.width=256;CV.height=256;gl=CV.getContext('webgl2',{antialias:false,premultipliedAlpha:true,preserveDrawingBuffer:true,alpha:true});}
   const sh=(t,s)=>{const x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);if(!gl.getShaderParameter(x,gl.COMPILE_STATUS)){console.warn(gl.getShaderInfoLog(x));return null;}return x;};
   const v=sh(gl.VERTEX_SHADER,VS),f=sh(gl.FRAGMENT_SHADER,FS);if(!v||!f)return false;prog=gl.createProgram();gl.attachShader(prog,v);gl.attachShader(prog,f);gl.linkProgram(prog);
   if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){console.warn(gl.getProgramInfoLog(prog));return false;}
-  for(const n of ['uJ','uM','uT','uProj','uSize','uDepth','uCamV','uBase','uNorm','uHasN','uLight','uRim','uNight'])U[n]=gl.getUniformLocation(prog,n);return true;}
+  for(const n of ['uJ','uM','uT','uProj','uSize','uDepth','uCamV','uBase','uNorm','uHasN','uLight','uRim','uNight','uSuit','uHair','uBeard','uSkinK','uSkinC','uShave','uGlasses','uSeed'])U[n]=gl.getUniformLocation(prog,n);return true;}
 // ---------- the game's pose, retargeted ----------
 // model space: +Z is where the character faces, +Y up, +X its left. Rotations are given in model space about each joint.
 const AX={pitch:[1,0,0],roll:[0,0,1],yaw:[0,1,0]};
 function posed(A,e,po,phase,moving){
-  const L=sample(A,moving?A.walk:null,moving?A.c0+phase*A.cycle:0);
+  const L=sample(A,moving?A.walk:null,moving?A.c0+phase*A.cycle:0),V=e.look._var||{};
+  if(V.head&&A.bn('head')>=0){const h=A.bn('head');L[h].s=L[h].s.map(v=>v*V.head);}
   if(moving&&A.rootMotion){const h=A.bn('hips');L[h].t[2]=A.nodes[h].t[2];}
   // extra rotations, applied top-down in model space
   const rot={};const add=(k,ax,a)=>{const b=A.bn(k);if(b<0||!a)return;rot[b]=qmul(qaxis(AX[ax],a),rot[b]||[0,0,0,1]);};
@@ -4120,11 +4156,14 @@ function render(e,po,dq,phase,moving,w,h,bx,by,RS,pad){
   gl.uniform4fv(U.uJ,J);
   // model space -> game world: forward (+Z) to the facing direction, +X to its left, +Y up; scaled to the game's figure height
   const dir=dq*(TAU/48),c=Math.cos(dir),s=Math.sin(dir),k=(A.opts.height*(e.look.scale||1))/A.h;
-  const fwd=[c*k,s*k,0],left=[-s*k,c*k,0],up=[0,0,k];
+  const V=e.look._var||{},wk=k*(V.width||1);const fwd=[c*wk,s*wk,0],left=[-s*wk,c*wk,0],up=[0,0,k];
   gl.uniformMatrix3fv(U.uM,false,new Float32Array([left[0],left[1],left[2],up[0],up[1],up[2],fwd[0],fwd[1],fwd[2]]));
   gl.uniform3f(U.uT,0,0,(-A.restFoot+lift)*k+(e.z||0));
   gl.uniform4f(U.uProj,bx,by,RS,pad);gl.uniform2f(U.uSize,w,h);gl.uniform1f(U.uDepth,0.3);
   gl.uniform3fv(U.uCamV,norm3([1,1,32/30]));gl.uniform3fv(U.uLight,norm3([-0.3,0.62,0.75]));gl.uniform3fv(U.uRim,norm3([-0.7,-0.6,0.35]));
+  {const h=x=>{const c=rgbOf(x);return [c[0]/255,c[1]/255,c[2]/255];},sk=h(V.skin||'#e2b590'),k0=h('#e2b590');
+   gl.uniform4f(U.uSuit,...(V.suit?h(V.suit):[0,0,0]),V.suit?1:0);gl.uniform3f(U.uSkinK,sk[0]/k0[0],sk[1]/k0[1],sk[2]/k0[2]);gl.uniform3f(U.uSkinC,...sk);
+   gl.uniform4f(U.uHair,...(V.hairC?h(V.hairC):[0,0,0]),V.hair||0);gl.uniform4f(U.uBeard,...(V.beardC?h(V.beardC):[0,0,0]),V.beard||0);gl.uniform1f(U.uShave,V.shave?1:0);gl.uniform1f(U.uGlasses,V.glasses?1:0);gl.uniform1f(U.uSeed,V.seed||0);}
   gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,A.gpu.base);gl.uniform1i(U.uBase,0);
   gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,A.gpu.norm||A.gpu.base);gl.uniform1i(U.uNorm,1);gl.uniform1f(U.uHasN,A.gpu.norm?1:0);
   gl.bindVertexArray(A.gpu.vao);gl.drawElements(gl.TRIANGLES,A.gpu.n,gl.UNSIGNED_INT,0);gl.bindVertexArray(null);
@@ -4133,7 +4172,7 @@ async function load(name,url,opts){if(!gl&&!compile())return;try{const A=await b
     // how far the arms hang out in the rest pose, so idle can bring them down
     const s=A.jp('armL'),f=A.jp('foreL');if(s&&f){A.armDown=Math.max(0,Math.atan2(Math.abs(f[0]-s[0]),Math.abs(f[1]-s[1]))-0.16);}
     R_.assets[name]=A;R_.ok=true;if(typeof FIGC!=='undefined'){FIGC.clear();FIG_PX=0;}}catch(err){console.warn('asset '+name+' not loaded:',err);}}
-return {debugPose:ph=>{const A=R_.assets.aren,W=worlds(A,sample(A,A.walk,A.c0+ph*A.cycle)),f=b=>[W[b][13],W[b][14]],L=f(A.bn('footL')),Rr=f(A.bn('footR')),H=f(A.bn('hips'));return [L[0],L[1],Rr[0],Rr[1],H[0],H[1]];},load,render,has:L=>!!(L._asset&&R_.assets[L._asset]),R_,walkSpeed:name=>{const A=R_.assets[name];return A?A.walkSpeed*A.cycle*(A.opts.height/A.h):1;},stride:name=>{const A=R_.assets[name];return A?A.walkSpeed*A.cycle*(A.opts.height/A.h):1;}};
+return {canRender(){return (R_.fr||0)<(R_.soft?1:(typeof isTouch==='function'&&isTouch())?2:3);},tick(){R_.fr=0;},count(){R_.fr=(R_.fr||0)+1;},debugPose:ph=>{const A=R_.assets.aren,W=worlds(A,sample(A,A.walk,A.c0+ph*A.cycle)),f=b=>[W[b][13],W[b][14]],L=f(A.bn('footL')),Rr=f(A.bn('footR')),H=f(A.bn('hips'));return [L[0],L[1],Rr[0],Rr[1],H[0],H[1]];},load,render,has:L=>!!(L._asset&&R_.assets[L._asset]),R_,walkSpeed:name=>{const A=R_.assets[name];return A?A.walkSpeed*A.cycle*(A.opts.height/A.h):1;},stride:name=>{const A=R_.assets[name];return A?A.walkSpeed*A.cycle*(A.opts.height/A.h):1;}};
 })();
 if(location.protocol!=='file:')RIG.load('aren',location.hostname.endsWith('github.io')||location.hostname==='localhost'?'models/aren.glb':'models/aren.glb.webm',{height:1.45});   // opened as a local file, the procedural figure is used
 </script>
